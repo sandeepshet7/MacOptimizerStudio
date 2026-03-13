@@ -1,0 +1,7 @@
+.build/
+.swiftpm/
+DerivedData/
+.DS_Store
+build/
+rust/macopt-scanner/target/
+.claude/
