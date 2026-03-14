@@ -96,25 +96,27 @@ struct PrivacyView: View {
 
     private var cleanupContent: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Button("Scan") {
-                    Task { await privacyViewModel.scan() }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
-                .disabled(privacyViewModel.isScanning)
+            StyledCard {
+                HStack {
+                    Button("Scan") {
+                        Task { await privacyViewModel.scan() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+                    .disabled(privacyViewModel.isScanning)
 
-                if privacyViewModel.isScanning {
-                    ProgressView().controlSize(.small)
-                    Text("Scanning...").font(.caption).foregroundStyle(.secondary)
-                }
+                    if privacyViewModel.isScanning {
+                        ProgressView().controlSize(.small)
+                        Text("Scanning...").font(.caption).foregroundStyle(.secondary)
+                    }
 
-                Spacer()
+                    Spacer()
 
-                if let report = privacyViewModel.report {
-                    Text("Total: \(ByteFormatting.string(report.totalBytes))")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.orange)
+                    if let report = privacyViewModel.report {
+                        Text("Total: \(ByteFormatting.string(report.totalBytes))")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.orange)
+                    }
                 }
             }
 
@@ -136,35 +138,36 @@ struct PrivacyView: View {
     }
 
     private func categorySection(_ category: PrivacyCategory, items: [PrivacyItem]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: category.icon)
-                    .foregroundStyle(.orange)
-                Text(category.displayName)
-                    .font(.headline)
-                Spacer()
-                Text(ByteFormatting.string(privacyViewModel.report?.totalBytes(for: category) ?? 0))
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                Button("Select All") {
-                    privacyViewModel.selectAll(for: category)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    CardSectionHeader(icon: category.icon, title: category.displayName, color: .orange)
+                    Spacer()
+                    Text(ByteFormatting.string(privacyViewModel.report?.totalBytes(for: category) ?? 0))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    Button("Select All") {
+                        privacyViewModel.selectAll(for: category)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.mini)
-            }
 
-            Text(category.description)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                Text(category.description)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
 
-            VStack(spacing: 0) {
-                ForEach(items) { item in
-                    privacyItemRow(item)
-                    Divider()
+                Divider()
+
+                VStack(spacing: 0) {
+                    ForEach(items) { item in
+                        privacyItemRow(item)
+                        if item.id != items.last?.id {
+                            Divider()
+                        }
+                    }
                 }
             }
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -199,8 +202,7 @@ struct PrivacyView: View {
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
     }
 
     // MARK: - Cleanup Bar
@@ -242,24 +244,26 @@ struct PrivacyView: View {
 
     private var permissionsContent: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Button("Scan Permissions") {
-                    Task { await privacyViewModel.scanPermissions() }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
-                .disabled(privacyViewModel.isScanningPermissions)
+            StyledCard {
+                HStack {
+                    Button("Scan Permissions") {
+                        Task { await privacyViewModel.scanPermissions() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+                    .disabled(privacyViewModel.isScanningPermissions)
 
-                if privacyViewModel.isScanningPermissions {
-                    ProgressView().controlSize(.small)
-                }
+                    if privacyViewModel.isScanningPermissions {
+                        ProgressView().controlSize(.small)
+                    }
 
-                Spacer()
+                    Spacer()
 
-                if !privacyViewModel.permissions.isEmpty {
-                    Text("\(privacyViewModel.uniqueAppCount) apps with permissions")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if !privacyViewModel.permissions.isEmpty {
+                        Text("\(privacyViewModel.uniqueAppCount) apps with permissions")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -283,62 +287,64 @@ struct PrivacyView: View {
     }
 
     private func permissionTypeSection(_ permType: PermissionType, apps: [AppPermission]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: permType.icon)
-                    .foregroundStyle(.blue)
-                Text(permType.displayName)
-                    .font(.headline)
-                Spacer()
-                Text("\(apps.count) app(s)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+        StyledCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    CardSectionHeader(icon: permType.icon, title: permType.displayName, color: .blue)
+                    Spacer()
+                    Text("\(apps.count) app(s)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
-            VStack(spacing: 0) {
-                ForEach(apps) { perm in
-                    HStack {
-                        Text(perm.appName)
-                            .font(.subheadline)
-                        Spacer()
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(perm.isAllowed ? .green : .red)
-                                .frame(width: 6, height: 6)
-                            Text(perm.isAllowed ? "Allowed" : "Denied")
-                                .font(.caption)
-                                .foregroundStyle(perm.isAllowed ? .green : .red)
+                Divider()
+
+                VStack(spacing: 0) {
+                    ForEach(apps) { perm in
+                        HStack {
+                            Text(perm.appName)
+                                .font(.subheadline)
+                            Spacer()
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(perm.isAllowed ? .green : .red)
+                                    .frame(width: 6, height: 6)
+                                Text(perm.isAllowed ? "Allowed" : "Denied")
+                                    .font(.caption)
+                                    .foregroundStyle(perm.isAllowed ? .green : .red)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        if perm.id != apps.last?.id {
+                            Divider()
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    Divider()
                 }
             }
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 
     // MARK: - Helpers
 
     private func emptyState(icon: String, title: String, detail: String) -> some View {
-        VStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(Color.orange.opacity(0.08))
-                    .frame(width: 70, height: 70)
-                Image(systemName: icon)
-                    .font(.system(size: 28))
-                    .foregroundStyle(.orange)
+        StyledCard {
+            VStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.08))
+                        .frame(width: 70, height: 70)
+                    Image(systemName: icon)
+                        .font(.system(size: 28))
+                        .foregroundStyle(.orange)
+                }
+                Text(title).font(.headline)
+                Text(detail)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
-            Text(title).font(.headline)
-            Text(detail)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
     }
 }

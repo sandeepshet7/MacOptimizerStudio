@@ -12,21 +12,6 @@ struct SettingsView: View {
                     Label("General", systemImage: "gearshape")
                 }
 
-            MemoryMonitorSettingsTab()
-                .tabItem {
-                    Label("Memory Monitor", systemImage: "waveform.path.ecg")
-                }
-
-            NotificationSettingsTab()
-                .tabItem {
-                    Label("Notifications", systemImage: "bell")
-                }
-
-            AppearanceSettingsTab()
-                .tabItem {
-                    Label("Appearance", systemImage: "paintbrush")
-                }
-
             BugReportSettingsTab(
                 systemSnapshot: systemHealthViewModel.snapshot,
                 auditEntries: auditLogViewModel.entries
@@ -41,7 +26,61 @@ struct SettingsView: View {
                 }
         }
         .tabViewStyle(.automatic)
-        .frame(width: 500)
+        .frame(width: 520, height: 520)
+    }
+}
+
+// MARK: - Styled Card Container
+
+private struct SettingsCard<Content: View>: View {
+    let content: Content
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+    var body: some View {
+        content
+            .padding(16)
+            .background(Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
+            )
+    }
+}
+
+private struct SettingsSectionHeader: View {
+    let icon: String
+    let title: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundColor(color)
+                .frame(width: 20)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.primary)
+        }
+    }
+}
+
+private struct SettingsRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.body)
+                .foregroundColor(.primary)
+            Spacer()
+            Text(value)
+                .font(.body)
+                .foregroundColor(.secondary)
+        }
     }
 }
 
@@ -51,113 +90,137 @@ private struct GeneralSettingsTab: View {
     @AppStorage("default_scan_preset") private var defaultScanPreset: String = ScanPreset.balanced.rawValue
     @AppStorage("auto_scan_on_launch") private var autoScanOnLaunch: Bool = false
     @AppStorage("confirm_before_cleanup") private var confirmBeforeCleanup: Bool = true
-
-    var body: some View {
-        Form {
-            Section("Scanning") {
-                Picker("Default scan preset", selection: $defaultScanPreset) {
-                    ForEach(ScanPreset.allCases) { preset in
-                        Text(preset.rawValue.capitalized).tag(preset.rawValue)
-                    }
-                }
-                Text("Fast: quick shallow scan. Balanced: moderate depth. Deep: full recursive scan for maximum coverage.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Toggle("Auto-scan on launch", isOn: $autoScanOnLaunch)
-            }
-
-            Section("Safety") {
-                Toggle("Confirm before executing cleanup", isOn: $confirmBeforeCleanup)
-            }
-        }
-        .frame(maxHeight: .infinity, alignment: .top)
-    }
-}
-
-// MARK: - Memory Monitor
-
-private struct MemoryMonitorSettingsTab: View {
     @AppStorage("memory_poll_interval") private var memoryPollInterval: Int = 3
-
-    private let intervals: [Int] = [1, 3, 5, 10]
-
-    var body: some View {
-        Form {
-            Section("Polling") {
-                Picker("Refresh interval", selection: $memoryPollInterval) {
-                    ForEach(intervals, id: \.self) { seconds in
-                        Text("\(seconds)s").tag(seconds)
-                    }
-                }
-            }
-        }
-        .frame(maxHeight: .infinity, alignment: .top)
-    }
-}
-
-// MARK: - Notifications
-
-private struct NotificationSettingsTab: View {
     @AppStorage("alert_memory_critical") private var alertMemoryCritical = true
     @AppStorage("alert_cpu_high") private var alertCPUHigh = true
     @AppStorage("alert_disk_full") private var alertDiskFull = true
-
-    var body: some View {
-        Form {
-            Section("System Alerts") {
-                Toggle("Memory pressure critical", isOn: $alertMemoryCritical)
-                Text("Notify when memory enters critical state with heavy swap usage.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Toggle("CPU usage > 80% sustained", isOn: $alertCPUHigh)
-                Text("Notify when a process uses more than 80% CPU.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Toggle("Disk usage > 90%", isOn: $alertDiskFull)
-                Text("Notify when disk is nearly full.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("Cooldown") {
-                Text("Alerts are rate-limited to once every 5 minutes per type to avoid spam.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxHeight: .infinity, alignment: .top)
-    }
-}
-
-// MARK: - Appearance
-
-private struct AppearanceSettingsTab: View {
     @AppStorage("color_scheme_override") private var colorSchemeOverride: String = "system"
+    @AppStorage("battery_refresh_interval") private var batteryRefreshInterval: Int = 0
 
-    private let options: [(label: String, value: String)] = [
+    private let pollIntervals: [Int] = [1, 3, 5, 10]
+    private let batteryIntervals: [(label: String, value: Int)] = [
+        ("Off", 0), ("10s", 10), ("30s", 30), ("60s", 60),
+    ]
+    private let themeOptions: [(label: String, value: String)] = [
         ("System", "system"),
         ("Light", "light"),
         ("Dark", "dark"),
     ]
 
     var body: some View {
-        Form {
-            Section("Theme") {
-                Picker("Color scheme", selection: $colorSchemeOverride) {
-                    ForEach(options, id: \.value) { option in
-                        Text(option.label).tag(option.value)
+        ScrollView {
+            VStack(spacing: 16) {
+                // Scanning & Safety
+                SettingsCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        SettingsSectionHeader(icon: "magnifyingglass", title: "Scanning", color: .blue)
+
+                        Divider()
+
+                        HStack {
+                            Text("Default preset")
+                                .font(.body)
+                            Spacer()
+                            Picker("", selection: $defaultScanPreset) {
+                                ForEach(ScanPreset.allCases) { preset in
+                                    Text(preset.rawValue.capitalized).tag(preset.rawValue)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 130)
+                        }
+
+                        Text("Fast: shallow scan. Balanced: moderate depth. Deep: full recursive scan.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+
+                        Toggle("Auto-scan on launch", isOn: $autoScanOnLaunch)
+                            .font(.body)
+
+                        Divider()
+
+                        Toggle("Confirm before cleanup", isOn: $confirmBeforeCleanup)
+                            .font(.body)
+                    }
+                }
+
+                // Monitor & Alerts
+                SettingsCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        SettingsSectionHeader(icon: "waveform.path.ecg", title: "Monitor & Alerts", color: .orange)
+
+                        Divider()
+
+                        HStack {
+                            Text("Memory refresh interval")
+                                .font(.body)
+                            Spacer()
+                            Picker("", selection: $memoryPollInterval) {
+                                ForEach(pollIntervals, id: \.self) { seconds in
+                                    Text("\(seconds)s").tag(seconds)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 80)
+                        }
+
+                        HStack {
+                            Text("Battery refresh interval")
+                                .font(.body)
+                            Spacer()
+                            Picker("", selection: $batteryRefreshInterval) {
+                                ForEach(batteryIntervals, id: \.value) { option in
+                                    Text(option.label).tag(option.value)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 80)
+                        }
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Toggle("Memory pressure critical", isOn: $alertMemoryCritical)
+                                .font(.body)
+                            Toggle("CPU usage > 80% sustained", isOn: $alertCPUHigh)
+                                .font(.body)
+                            Toggle("Disk usage > 90%", isOn: $alertDiskFull)
+                                .font(.body)
+                        }
+
+                        Text("Alerts are rate-limited to once every 5 minutes per type.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // Appearance
+                SettingsCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        SettingsSectionHeader(icon: "paintbrush", title: "Appearance", color: .purple)
+
+                        Divider()
+
+                        HStack {
+                            Text("Color scheme")
+                                .font(.body)
+                            Spacer()
+                            Picker("", selection: $colorSchemeOverride) {
+                                ForEach(themeOptions, id: \.value) { option in
+                                    Text(option.label).tag(option.value)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 130)
+                        }
                     }
                 }
             }
+            .padding(20)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
     }
 }
-
-// MARK: - About
 
 // MARK: - Bug Report
 
@@ -169,90 +232,139 @@ private struct BugReportSettingsTab: View {
     @State private var savedPath: String?
 
     var body: some View {
-        Form {
-            Section("Report a Problem") {
-                Text("Generate a bug report with system info, recent errors, and activity log. No personal files or passwords are included.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        ScrollView {
+            VStack(spacing: 16) {
+                // Report Action
+                SettingsCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        SettingsSectionHeader(icon: "ladybug", title: "Report a Problem", color: .red)
 
-                HStack {
-                    Button {
-                        generateAndSave()
-                    } label: {
-                        Label("Generate Bug Report", systemImage: "ladybug")
-                    }
-                    .controlSize(.large)
+                        Divider()
 
-                    if reportGenerated {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                    }
-                }
+                        Text("Generate a bug report with system info, recent errors, and activity log. No personal files or passwords are included.")
+                            .font(.body)
+                            .foregroundColor(.secondary)
 
-                if let path = savedPath {
-                    HStack(spacing: 6) {
-                        Image(systemName: "doc.text")
-                            .foregroundStyle(.secondary)
-                        Text(path)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Spacer()
-                        Button("Reveal") {
-                            NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: "")
+                        HStack {
+                            Button {
+                                generateAndSave()
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "doc.text.magnifyingglass")
+                                    Text("Generate Bug Report")
+                                }
+                                .font(.body.weight(.medium))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.orange)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+
+                            if reportGenerated {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                    Text("Saved")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                }
+                            }
                         }
-                        .font(.caption)
-                    }
-                }
-            }
 
-            Section("What's Included") {
-                VStack(alignment: .leading, spacing: 4) {
-                    includedItem("Mac model, macOS version, CPU, RAM")
-                    includedItem("Disk usage and battery info")
-                    includedItem("Recent errors captured during this session")
-                    includedItem("Last 20 Activity Log entries")
-                    includedItem("A section for you to describe the issue")
-                }
-            }
-
-            Section("Recent Errors This Session") {
-                let errors = ErrorCollector.shared.recentErrors()
-                if errors.isEmpty {
-                    Text("No errors recorded")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(Array(errors.prefix(5).enumerated()), id: \.offset) { _, entry in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.source)
-                                .font(.caption.weight(.medium))
-                            Text(entry.message)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
+                        if let path = savedPath {
+                            HStack(spacing: 8) {
+                                Image(systemName: "doc.text")
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
+                                Text(path)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Spacer()
+                                Button {
+                                    NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: "")
+                                } label: {
+                                    Text("Reveal in Finder")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(10)
+                            .background(Color(nsColor: .windowBackgroundColor))
+                            .cornerRadius(6)
                         }
                     }
-                    if errors.count > 5 {
-                        Text("... and \(errors.count - 5) more")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
+                }
+
+                // What's Included
+                SettingsCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        SettingsSectionHeader(icon: "checklist", title: "What's Included", color: .green)
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            includedItem("Mac model, macOS version, CPU, RAM")
+                            includedItem("Disk usage and battery info")
+                            includedItem("Recent errors captured during this session")
+                            includedItem("Last 20 Activity Log entries")
+                            includedItem("A section for you to describe the issue")
+                        }
+                    }
+                }
+
+                // Recent Errors
+                SettingsCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        SettingsSectionHeader(icon: "exclamationmark.triangle", title: "Recent Errors", color: .yellow)
+
+                        Divider()
+
+                        let errors = ErrorCollector.shared.recentErrors()
+                        if errors.isEmpty {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle")
+                                    .foregroundColor(.green)
+                                Text("No errors recorded this session")
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                            }
+                        } else {
+                            ForEach(Array(errors.prefix(5).enumerated()), id: \.offset) { _, entry in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.source)
+                                        .font(.caption.weight(.medium))
+                                    Text(entry.message)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(2)
+                                }
+                            }
+                            if errors.count > 5 {
+                                Text("... and \(errors.count - 5) more")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
                 }
             }
+            .padding(20)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private func includedItem(_ text: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "checkmark")
-                .font(.caption2)
-                .foregroundStyle(.green)
-            Text(text)
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.green)
+            Text(text)
+                .font(.body)
+                .foregroundColor(.primary)
         }
     }
 
@@ -299,20 +411,145 @@ private struct AboutSettingsTab: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                HStack { Text("Application"); Spacer(); Text("MacOptimizer Studio").foregroundColor(.secondary) }
-                HStack { Text("Version"); Spacer(); Text("\(appVersion) (\(buildNumber))").foregroundColor(.secondary) }
-            }
+        ScrollView {
+            VStack(spacing: 16) {
+                // App Identity
+                SettingsCard {
+                    VStack(spacing: 14) {
+                        // App icon + name
+                        Group {
+                            if let iconURL = Bundle.module.url(forResource: "app_icon", withExtension: "png"),
+                               let nsImage = NSImage(contentsOf: iconURL) {
+                                Image(nsImage: nsImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                            } else {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(LinearGradient(colors: [.orange, .orange.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    Image(systemName: "gauge.with.dots.needle.67percent")
+                                        .font(.system(size: 28))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                        }
+                        .frame(width: 64, height: 64)
 
-            Section("Compatibility") {
-                HStack { Text("Minimum macOS"); Spacer(); Text("macOS 12 Monterey").foregroundColor(.secondary) }
-                HStack { Text("Architectures"); Spacer(); Text("Apple Silicon (M1-M5) & Intel").foregroundColor(.secondary) }
-                Text("Runs natively on all Mac processors — Apple Silicon (M1, M2, M3, M4, M5) and Intel x86_64. Universal binary, no Rosetta required on Apple Silicon.")
+                        Text("MacOptimizer Studio")
+                            .font(.title2.weight(.bold))
+
+                        Text("Version \(appVersion) (Build \(buildNumber))")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Text("Your Mac, But Faster")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .italic()
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+
+                // System Info
+                SettingsCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        SettingsSectionHeader(icon: "desktopcomputer", title: "Compatibility", color: .blue)
+
+                        Divider()
+
+                        SettingsRow(label: "Minimum macOS", value: "macOS 12 Monterey")
+                        Divider()
+                        SettingsRow(label: "Architectures", value: "Apple Silicon & Intel")
+                        Divider()
+                        SettingsRow(label: "Apple Silicon", value: "M1, M2, M3, M4, M5")
+                        Divider()
+                        SettingsRow(label: "Intel", value: "x86_64 (2015+)")
+
+                        Text("Universal binary — runs natively on all supported Mac processors. No Rosetta required on Apple Silicon.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // Links
+                SettingsCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        SettingsSectionHeader(icon: "link", title: "Links", color: .orange)
+
+                        Divider()
+
+                        Button {
+                            if let url = URL(string: "https://github.com/sandeepshet7/MacOptimizerStudio") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                    .foregroundColor(.orange)
+                                    .frame(width: 20)
+                                Text("Source Code on GitHub")
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        Divider()
+
+                        Button {
+                            if let url = URL(string: "https://sandeepshet7.github.io/MacOptimizerStudio/") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "globe")
+                                    .foregroundColor(.orange)
+                                    .frame(width: 20)
+                                Text("Website")
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        Divider()
+
+                        Button {
+                            if let url = URL(string: "https://github.com/sandeepshet7/MacOptimizerStudio/issues") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "exclamationmark.bubble")
+                                    .foregroundColor(.orange)
+                                    .frame(width: 20)
+                                Text("Report Issue")
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Text("Made with Swift & Rust")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .padding(.bottom, 4)
             }
+            .padding(20)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
     }
 }

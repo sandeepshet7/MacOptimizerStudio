@@ -100,55 +100,55 @@ struct DockerView: View {
     // MARK: - States
 
     private var notInstalledState: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Color.secondary.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "shippingbox.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.secondary.opacity(0.6))
+        StyledCard {
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.secondary.opacity(0.08))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "shippingbox.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.secondary.opacity(0.6))
+                }
+                VStack(spacing: 6) {
+                    Text("Docker Not Installed")
+                        .font(.title3.weight(.semibold))
+                    Text("Install Docker Desktop to manage containers, images, and volumes.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 380)
+                }
             }
-            VStack(spacing: 6) {
-                Text("Docker Not Installed")
-                    .font(.title3.weight(.semibold))
-                Text("Install Docker Desktop to manage containers, images, and volumes.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 380)
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var notRunningState: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Color.orange.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "power.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.orange.opacity(0.7))
+        StyledCard {
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.08))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "power.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.orange.opacity(0.7))
+                }
+                VStack(spacing: 6) {
+                    Text("Docker Not Running")
+                        .font(.title3.weight(.semibold))
+                    Text("Start Docker Desktop to view and manage your Docker resources.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 380)
+                }
             }
-            VStack(spacing: 6) {
-                Text("Docker Not Running")
-                    .font(.title3.weight(.semibold))
-                Text("Start Docker Desktop to view and manage your Docker resources.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 380)
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var loadingState: some View {
@@ -176,36 +176,36 @@ struct DockerView: View {
         Button {
             Task { await dockerViewModel.refresh() }
         } label: {
-            VStack(spacing: 18) {
-                ZStack {
-                    Circle()
-                        .fill(Color.indigo.opacity(0.08))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "shippingbox.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.indigo.opacity(0.6))
+            StyledCard {
+                VStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.indigo.opacity(0.08))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "shippingbox.circle.fill")
+                            .font(.system(size: 44))
+                            .foregroundStyle(.indigo.opacity(0.6))
+                    }
+                    VStack(spacing: 6) {
+                        Text("Load Docker Data")
+                            .font(.title3.weight(.semibold))
+                        Text("Check images, volumes, containers, and disk usage.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 380)
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption.weight(.semibold))
+                        Text("Click to refresh")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .foregroundStyle(.orange)
                 }
-                VStack(spacing: 6) {
-                    Text("Load Docker Data")
-                        .font(.title3.weight(.semibold))
-                    Text("Check images, volumes, containers, and disk usage.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 380)
-                }
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.caption.weight(.semibold))
-                    Text("Click to refresh")
-                        .font(.subheadline.weight(.medium))
-                }
-                .foregroundStyle(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 28)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 44)
-            .background(panelFill)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
@@ -213,91 +213,68 @@ struct DockerView: View {
     // MARK: - Disk Usage Cards
 
     private var diskUsageCards: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Disk Usage")
-                    .font(.headline)
-                Spacer()
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    CardSectionHeader(icon: "internaldrive.fill", title: "Disk Usage", color: .orange)
+                    Spacer()
 
-                Button {
-                    pendingPruneType = .images
-                } label: {
-                    Label("Prune Images", systemImage: "trash")
+                    Button {
+                        pendingPruneType = .images
+                    } label: {
+                        Label("Prune Images", systemImage: "trash")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    Button {
+                        pendingPruneType = .system
+                    } label: {
+                        Label("Prune All", systemImage: "trash.fill")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.red)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
 
-                Button {
-                    pendingPruneType = .system
-                } label: {
-                    Label("Prune All", systemImage: "trash.fill")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(.red)
-            }
-
-            if let usage = dockerViewModel.snapshot?.diskUsage {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
-                    usageCard(title: "Total", bytes: usage.totalBytes, tint: .orange, icon: "shippingbox.fill")
-                    usageCard(title: "Images", bytes: usage.imagesTotalBytes, tint: .blue, icon: "square.stack.3d.up.fill")
-                    usageCard(title: "Containers", bytes: usage.containersTotalBytes, tint: .green, icon: "cube.fill")
-                    usageCard(title: "Volumes", bytes: usage.volumesTotalBytes, tint: .purple, icon: "externaldrive.fill")
-                    usageCard(title: "Build Cache", bytes: usage.buildCacheTotalBytes, tint: .cyan, icon: "hammer.fill")
+                if let usage = dockerViewModel.snapshot?.diskUsage {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
+                        StatCard(icon: "shippingbox.fill", title: "Total", value: ByteFormatting.string(usage.totalBytes), tint: .orange)
+                        StatCard(icon: "square.stack.3d.up.fill", title: "Images", value: ByteFormatting.string(usage.imagesTotalBytes), tint: .blue)
+                        StatCard(icon: "cube.fill", title: "Containers", value: ByteFormatting.string(usage.containersTotalBytes), tint: .green)
+                        StatCard(icon: "externaldrive.fill", title: "Volumes", value: ByteFormatting.string(usage.volumesTotalBytes), tint: .purple)
+                        StatCard(icon: "hammer.fill", title: "Build Cache", value: ByteFormatting.string(usage.buildCacheTotalBytes), tint: .cyan)
+                    }
                 }
             }
         }
-    }
-
-    private func usageCard(title: String, bytes: UInt64, tint: Color, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .foregroundStyle(tint)
-                Text(title)
-                    .font(.caption.weight(.semibold))
-            }
-            Text(ByteFormatting.string(bytes))
-                .font(.title3.weight(.bold))
-                .animation(.easeInOut(duration: 0.4), value: bytes)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(tint.opacity(0.15), lineWidth: 1)
-        )
     }
 
     // MARK: - Containers
 
     private func containersSection(_ containers: [DockerContainer]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Containers")
-                    .font(.headline)
-                Text("\(containers.count)")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color.green.opacity(0.15))
-                    .foregroundStyle(.green)
-                    .clipShape(Capsule())
-                Spacer()
-            }
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    CardSectionHeader(icon: "cube.fill", title: "Containers", color: .green)
+                    Text("\(containers.count)")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.green.opacity(0.15))
+                        .foregroundStyle(.green)
+                        .clipShape(Capsule())
+                    Spacer()
+                }
 
-            VStack(spacing: 0) {
-                containerHeader
-                Divider()
-                ForEach(containers) { container in
-                    containerRow(container)
-                    Divider()
+                VStack(spacing: 0) {
+                    containerHeader
+                    ForEach(containers) { container in
+                        Divider()
+                        containerRow(container)
+                    }
                 }
             }
-            .background(panelFill)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -314,6 +291,7 @@ struct DockerView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(Color.primary.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
     private func containerRow(_ container: DockerContainer) -> some View {
@@ -362,36 +340,34 @@ struct DockerView: View {
     // MARK: - Images
 
     private func imagesSection(_ images: [DockerImage]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Images")
-                    .font(.headline)
-                Text("\(images.count)")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color.blue.opacity(0.15))
-                    .foregroundStyle(.blue)
-                    .clipShape(Capsule())
-                Spacer()
-            }
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    CardSectionHeader(icon: "square.stack.3d.up.fill", title: "Images", color: .blue)
+                    Text("\(images.count)")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.blue.opacity(0.15))
+                        .foregroundStyle(.blue)
+                        .clipShape(Capsule())
+                    Spacer()
+                }
 
-            if images.isEmpty {
-                Text("No Docker images found.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 12)
-            } else {
-                VStack(spacing: 0) {
-                    imageHeader
-                    Divider()
-                    ForEach(images) { image in
-                        imageRow(image)
-                        Divider()
+                if images.isEmpty {
+                    Text("No Docker images found.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 12)
+                } else {
+                    VStack(spacing: 0) {
+                        imageHeader
+                        ForEach(images) { image in
+                            Divider()
+                            imageRow(image)
+                        }
                     }
                 }
-                .background(panelFill)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
         }
     }
@@ -409,6 +385,7 @@ struct DockerView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(Color.primary.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
     private func imageRow(_ image: DockerImage) -> some View {
@@ -451,36 +428,34 @@ struct DockerView: View {
     // MARK: - Volumes
 
     private func volumesSection(_ volumes: [DockerVolume]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Volumes")
-                    .font(.headline)
-                Text("\(volumes.count)")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color.purple.opacity(0.15))
-                    .foregroundStyle(.purple)
-                    .clipShape(Capsule())
-                Spacer()
-            }
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    CardSectionHeader(icon: "externaldrive.fill", title: "Volumes", color: .purple)
+                    Text("\(volumes.count)")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.purple.opacity(0.15))
+                        .foregroundStyle(.purple)
+                        .clipShape(Capsule())
+                    Spacer()
+                }
 
-            if volumes.isEmpty {
-                Text("No Docker volumes found.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 12)
-            } else {
-                VStack(spacing: 0) {
-                    volumeHeader
-                    Divider()
-                    ForEach(volumes) { volume in
-                        volumeRow(volume)
-                        Divider()
+                if volumes.isEmpty {
+                    Text("No Docker volumes found.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 12)
+                } else {
+                    VStack(spacing: 0) {
+                        volumeHeader
+                        ForEach(volumes) { volume in
+                            Divider()
+                            volumeRow(volume)
+                        }
                     }
                 }
-                .background(panelFill)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
         }
     }
@@ -497,6 +472,7 @@ struct DockerView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(Color.primary.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
     private func volumeRow(_ volume: DockerVolume) -> some View {
@@ -621,9 +597,5 @@ struct DockerView: View {
         if filterText.isEmpty { return containers }
         let needle = filterText.lowercased()
         return containers.filter { $0.name.lowercased().contains(needle) || $0.image.lowercased().contains(needle) }
-    }
-
-    private var panelFill: some ShapeStyle {
-        .thinMaterial
     }
 }

@@ -18,6 +18,13 @@ public struct SystemCacheService: Sendable {
         entries.append(contentsOf: scanMailAttachments(home: home))
         entries.append(contentsOf: scanIOSBackups(home: home))
         entries.append(contentsOf: scanBrokenPreferences(home: home))
+        entries.append(contentsOf: scanJetBrainsData(home: home))
+        entries.append(contentsOf: scanVSCodeData(home: home))
+        entries.append(contentsOf: scanCommunicationApps(home: home))
+        entries.append(contentsOf: scanGameCaches(home: home))
+        entries.append(contentsOf: scanAIModels(home: home))
+        entries.append(contentsOf: scanInstallerPackages(home: home))
+        entries.append(contentsOf: scanTimeMachine(home: home))
 
         entries.sort { $0.sizeBytes > $1.sizeBytes }
 
@@ -39,8 +46,50 @@ public struct SystemCacheService: Sendable {
 
     private func scanAppCaches(home: String) -> [CacheEntry] {
         let cachesDir = "\(home)/Library/Caches"
-        return scanSubdirectories(at: cachesDir, category: .appCaches, risk: .safe, description: "Application cache")
+        let fm = FileManager.default
+        guard let contents = try? fm.contentsOfDirectory(atPath: cachesDir) else { return [] }
+
+        var entries: [CacheEntry] = []
+        for item in contents {
+            let fullPath = "\(cachesDir)/\(item)"
+            var isDir: ObjCBool = false
+            guard fm.fileExists(atPath: fullPath, isDirectory: &isDir), isDir.boolValue else { continue }
+
+            let size = directorySize(at: fullPath)
+            if size > 1024 * 1024 {
+                let name = appNameFromBundleId(item)
+                // Electron/session-storing apps get moderate risk; pure caches get safe
+                let risk: CacheRiskLevel = electronBundleIds.contains(item) ? .moderate : .safe
+                let desc = risk == .moderate
+                    ? "App cache — may require re-login after deletion"
+                    : "Application cache — safe to delete, auto-regenerates"
+                entries.append(CacheEntry(
+                    category: .appCaches,
+                    name: name,
+                    path: fullPath,
+                    sizeBytes: size,
+                    riskLevel: risk,
+                    itemDescription: "\(desc) — \(item)"
+                ))
+            }
+        }
+        return entries
     }
+
+    // Electron and session-storing apps — deleting cache may log user out
+    private let electronBundleIds: Set<String> = [
+        "com.hnc.Discord", "discord",
+        "com.tinyspeck.slackmacgap", "com.slack.Slack",
+        "com.microsoft.teams2", "com.microsoft.teams",
+        "com.anthropic.claudefordesktop",
+        "com.spotify.client",
+        "com.figma.Desktop",
+        "com.notion.id",
+        "com.linear",
+        "com.1password.1password",
+        "com.bitwarden.desktop",
+        "us.zoom.xos",
+    ]
 
     // MARK: - System Logs
 
@@ -102,6 +151,14 @@ public struct SystemCacheService: Sendable {
             ("\(home)/Library/Caches/pnpm", "pnpm Cache", "pnpm package download cache"),
             ("\(home)/.pub-cache", "Dart Pub Cache", "Flutter/Dart package cache"),
             ("\(home)/.cache/go-build", "Go Build Cache", "Go compilation cache"),
+            ("\(home)/.conda/pkgs", "Conda Cache", "Conda package download cache"),
+            ("\(home)/Library/Caches/org.swift.swiftpm", "Swift PM Cache", "Swift Package Manager cache"),
+            ("\(home)/.cache/pip", "pip Cache (alt)", "Python pip download cache (alternate location)"),
+            ("\(home)/.gem/cache", "Ruby Gems Cache", "Ruby gems download cache"),
+            ("\(home)/.cache/pnpm", "pnpm Cache (alt)", "pnpm package cache (alternate location)"),
+            ("\(home)/.bun/install/cache", "Bun Cache", "Bun package download cache"),
+            ("\(home)/development/flutter/bin/cache", "Flutter SDK Cache", "Flutter SDK build cache"),
+            ("\(home)/.flutter", "Flutter Config", "Flutter configuration data"),
         ]
 
         for (path, name, desc) in locations {
@@ -119,16 +176,16 @@ public struct SystemCacheService: Sendable {
         var entries: [CacheEntry] = []
 
         let locations: [(String, String, String)] = [
-            ("\(home)/Library/Caches/Google/Chrome", "Chrome Cache", "Google Chrome browser cache"),
-            ("\(home)/Library/Caches/com.apple.Safari", "Safari Cache", "Safari browser cache"),
-            ("\(home)/Library/Caches/Firefox", "Firefox Cache", "Firefox browser cache"),
-            ("\(home)/Library/Caches/com.microsoft.edgemac", "Edge Cache", "Microsoft Edge browser cache"),
-            ("\(home)/Library/Caches/com.brave.Browser", "Brave Cache", "Brave browser cache"),
-            ("\(home)/Library/Caches/com.operasoftware.Opera", "Opera Cache", "Opera browser cache"),
+            ("\(home)/Library/Caches/Google/Chrome", "Chrome Cache", "Google Chrome browser cache — logins and bookmarks are not affected"),
+            ("\(home)/Library/Caches/com.apple.Safari", "Safari Cache", "Safari browser cache — logins and bookmarks are not affected"),
+            ("\(home)/Library/Caches/Firefox", "Firefox Cache", "Firefox browser cache — logins and bookmarks are not affected"),
+            ("\(home)/Library/Caches/com.microsoft.edgemac", "Edge Cache", "Microsoft Edge browser cache — logins and bookmarks are not affected"),
+            ("\(home)/Library/Caches/com.brave.Browser", "Brave Cache", "Brave browser cache — logins and bookmarks are not affected"),
+            ("\(home)/Library/Caches/com.operasoftware.Opera", "Opera Cache", "Opera browser cache — logins and bookmarks are not affected"),
         ]
 
         for (path, name, desc) in locations {
-            if let entry = measureDirectory(at: path, name: name, category: .browserData, risk: .safe, description: desc) {
+            if let entry = measureDirectory(at: path, name: name, category: .browserData, risk: .moderate, description: desc) {
                 entries.append(entry)
             }
         }
@@ -149,6 +206,20 @@ public struct SystemCacheService: Sendable {
         let dockerDesktop = "\(home)/.docker"
         if let entry = measureDirectory(at: dockerDesktop, name: "Docker Config", category: .containerData, risk: .caution, description: "Docker configuration and credentials") {
             entries.append(entry)
+        }
+
+        // Virtual machine data
+        let vmLocations: [(String, String, String)] = [
+            ("\(home)/Parallels", "Parallels Desktop VMs", "Parallels virtual machine disk images — may contain important data"),
+            ("\(home)/Library/Application Support/VMware Fusion", "VMware Fusion VMs", "VMware virtual machine disk images — may contain important data"),
+            ("\(home)/Library/Containers/com.utmapp.UTM/Data/Documents", "UTM VMs", "UTM virtual machine disk images — may contain important data"),
+            ("\(home)/.local/share/virtualbuddy", "VirtualBuddy VMs", "VirtualBuddy virtual machine data — may contain important data"),
+        ]
+
+        for (path, name, desc) in vmLocations {
+            if let entry = measureDirectory(at: path, name: name, category: .containerData, risk: .caution, description: desc) {
+                entries.append(entry)
+            }
         }
 
         return entries
@@ -319,6 +390,176 @@ public struct SystemCacheService: Sendable {
         return entries
     }
 
+    // MARK: - JetBrains IDEs
+
+    private func scanJetBrainsData(home: String) -> [CacheEntry] {
+        var entries: [CacheEntry] = []
+
+        let jetbrainsCaches = "\(home)/Library/Caches/JetBrains"
+        entries.append(contentsOf: scanSubdirectories(at: jetbrainsCaches, category: .jetbrainsData, risk: .safe, description: "JetBrains IDE cache"))
+
+        let jetbrainsSupport = "\(home)/Library/Application Support/JetBrains"
+        entries.append(contentsOf: scanSubdirectories(at: jetbrainsSupport, category: .jetbrainsData, risk: .moderate, description: "JetBrains IDE config/plugin data"))
+
+        return entries
+    }
+
+    // MARK: - VS Code & Cursor
+
+    private func scanVSCodeData(home: String) -> [CacheEntry] {
+        var entries: [CacheEntry] = []
+
+        let locations: [(String, String, CacheRiskLevel, String)] = [
+            ("\(home)/Library/Application Support/Code/Cache", "VS Code Cache", .safe, "VS Code browser cache"),
+            ("\(home)/Library/Application Support/Code/CachedData", "VS Code CachedData", .safe, "VS Code cached compilation data"),
+            ("\(home)/Library/Application Support/Code/CachedExtensions", "VS Code CachedExtensions", .safe, "VS Code cached extension metadata"),
+            ("\(home)/Library/Application Support/Code/CachedExtensionVSIXs", "VS Code CachedExtensionVSIXs", .safe, "VS Code cached extension packages"),
+            ("\(home)/Library/Application Support/Cursor/Cache", "Cursor Cache", .safe, "Cursor editor browser cache"),
+            ("\(home)/Library/Application Support/Cursor/CachedData", "Cursor CachedData", .safe, "Cursor editor cached compilation data"),
+        ]
+
+        for (path, name, risk, desc) in locations {
+            if let entry = measureDirectory(at: path, name: name, category: .vsCodeData, risk: risk, description: desc) {
+                entries.append(entry)
+            }
+        }
+
+        return entries
+    }
+
+    // MARK: - Communication Apps
+
+    private func scanCommunicationApps(home: String) -> [CacheEntry] {
+        var entries: [CacheEntry] = []
+
+        let locations: [(String, String, CacheRiskLevel, String)] = [
+            ("\(home)/Library/Application Support/Slack/Cache", "Slack Cache", .moderate, "Slack media cache — may require re-login"),
+            ("\(home)/Library/Application Support/Slack/Service Worker/CacheStorage", "Slack Service Worker Cache", .moderate, "Slack service worker cache"),
+            ("\(home)/Library/Application Support/discord/Cache", "Discord Cache", .moderate, "Discord media cache — may require re-login"),
+            ("\(home)/Library/Application Support/discord/Code Cache", "Discord Code Cache", .moderate, "Discord compiled code cache"),
+            ("\(home)/Library/Containers/com.microsoft.teams2/Data/Library/Caches", "Teams Cache", .moderate, "Microsoft Teams cache — may require re-login"),
+            ("\(home)/Library/Application Support/zoom.us/data", "Zoom Data", .caution, "Zoom recordings and data — may include saved recordings"),
+            ("\(home)/Library/Caches/com.tinyspeck.slackmacgap", "Slack (App Store) Cache", .moderate, "Slack cache — may require re-login"),
+        ]
+
+        for (path, name, risk, desc) in locations {
+            if let entry = measureDirectory(at: path, name: name, category: .communicationApps, risk: risk, description: desc) {
+                entries.append(entry)
+            }
+        }
+
+        return entries
+    }
+
+    // MARK: - Game Libraries
+
+    private func scanGameCaches(home: String) -> [CacheEntry] {
+        var entries: [CacheEntry] = []
+
+        let steamApps = "\(home)/Library/Application Support/Steam/steamapps"
+        if let entry = measureDirectory(at: steamApps, name: "Steam Games", category: .gameCaches, risk: .caution, description: "Steam game files — contains actual installed games") {
+            entries.append(entry)
+        }
+
+        let steamWorkshop = "\(home)/Library/Application Support/Steam/steamapps/workshop"
+        if let entry = measureDirectory(at: steamWorkshop, name: "Steam Workshop", category: .gameCaches, risk: .moderate, description: "Steam Workshop downloaded mods and content") {
+            entries.append(entry)
+        }
+
+        let steamCache = "\(home)/Library/Caches/com.valvesoftware.steam"
+        if let entry = measureDirectory(at: steamCache, name: "Steam Cache", category: .gameCaches, risk: .safe, description: "Steam client cache — safe to delete") {
+            entries.append(entry)
+        }
+
+        let epicGames = "\(home)/Library/Application Support/Epic/EpicGamesLauncher"
+        if let entry = measureDirectory(at: epicGames, name: "Epic Games Launcher", category: .gameCaches, risk: .moderate, description: "Epic Games Store launcher data and cache") {
+            entries.append(entry)
+        }
+
+        return entries
+    }
+
+    // MARK: - AI & ML Models
+
+    private func scanAIModels(home: String) -> [CacheEntry] {
+        var entries: [CacheEntry] = []
+
+        let locations: [(String, String, CacheRiskLevel, String)] = [
+            ("\(home)/.ollama/models", "Ollama Models", .moderate, "Ollama LLM weights — can be 4-70GB each"),
+            ("\(home)/.cache/huggingface", "Hugging Face Cache", .safe, "Hugging Face transformer models and datasets"),
+            ("\(home)/.cache/lm-studio", "LM Studio Models", .moderate, "LM Studio GGUF/GGML model files"),
+            ("\(home)/.cache/torch", "PyTorch Cache", .safe, "PyTorch pre-trained model caches"),
+            ("\(home)/Library/Caches/com.apple.CoreML", "Core ML Cache", .safe, "Core ML compiled model cache"),
+            ("\(home)/.cache/whisper", "Whisper Models", .safe, "Whisper speech recognition model files"),
+        ]
+
+        for (path, name, risk, desc) in locations {
+            if let entry = measureDirectory(at: path, name: name, category: .aiModels, risk: risk, description: desc) {
+                entries.append(entry)
+            }
+        }
+
+        return entries
+    }
+
+    // MARK: - Installer Packages
+
+    private func scanInstallerPackages(home: String) -> [CacheEntry] {
+        let fm = FileManager.default
+        let downloadsDir = "\(home)/Downloads"
+        guard let contents = try? fm.contentsOfDirectory(atPath: downloadsDir) else { return [] }
+
+        let installerExtensions: Set<String> = ["dmg", "pkg", "app"]
+        var entries: [CacheEntry] = []
+
+        for item in contents {
+            let fullPath = "\(downloadsDir)/\(item)"
+            let ext = (item as NSString).pathExtension.lowercased()
+            guard installerExtensions.contains(ext) else { continue }
+
+            // Skip .app directories for this scan — only include files
+            var isDir: ObjCBool = false
+            guard fm.fileExists(atPath: fullPath, isDirectory: &isDir) else { continue }
+
+            // For .app, measure directory size; for .dmg/.pkg, measure file size
+            let size: UInt64
+            if isDir.boolValue {
+                size = directorySize(at: fullPath)
+            } else {
+                guard let attrs = try? fm.attributesOfItem(atPath: fullPath),
+                      let fileSize = attrs[.size] as? UInt64 else { continue }
+                size = fileSize
+            }
+
+            // Only include files > 1MB
+            guard size > 1024 * 1024 else { continue }
+
+            entries.append(CacheEntry(
+                category: .installerPackages,
+                name: item,
+                path: fullPath,
+                sizeBytes: size,
+                riskLevel: .safe,
+                itemDescription: "Installer package in Downloads — \(ext.uppercased()) file"
+            ))
+        }
+
+        return entries
+    }
+
+    // MARK: - Time Machine
+
+    private func scanTimeMachine(home: String) -> [CacheEntry] {
+        var entries: [CacheEntry] = []
+
+        let mobileSync = "/Library/Application Support/MobileSync"
+        if let entry = measureDirectory(at: mobileSync, name: "MobileSync Data", category: .timeMachineSnapshots, risk: .moderate, description: "Local sync and backup data — Time Machine local snapshots require tmutil to manage") {
+            entries.append(entry)
+        }
+
+        return entries
+    }
+
     // MARK: - Helpers
 
     private func scanSubdirectories(at basePath: String, category: CacheCategory, risk: CacheRiskLevel, description: String) -> [CacheEntry] {
@@ -411,5 +652,12 @@ public struct SystemCacheService: Sendable {
         "org.mozilla.firefox": "Firefox",
         "com.microsoft.edgemac": "Edge",
         "com.apple.finder": "Finder",
+        "com.jetbrains.intellij": "IntelliJ IDEA",
+        "com.jetbrains.pycharm": "PyCharm",
+        "com.jetbrains.WebStorm": "WebStorm",
+        "com.microsoft.teams2": "Teams",
+        "us.zoom.xos": "Zoom",
+        "com.hnc.Discord": "Discord",
+        "com.valvesoftware.steam": "Steam",
     ]
 }

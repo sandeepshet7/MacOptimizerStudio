@@ -150,6 +150,86 @@ extension View {
     }
 }
 
+// MARK: - Styled Card (shared across all views)
+
+struct StyledCard<Content: View>: View {
+    let content: Content
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+    var body: some View {
+        content
+            .padding(16)
+            .background(Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
+            )
+    }
+}
+
+struct CardSectionHeader: View {
+    let icon: String
+    let title: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundColor(color)
+                .frame(width: 20)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.primary)
+        }
+    }
+}
+
+struct InfoRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.body)
+                .foregroundColor(.primary)
+            Spacer()
+            Text(value)
+                .font(.body)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+struct StatCard: View {
+    let icon: String
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        StyledCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.caption)
+                        .foregroundColor(tint)
+                    Text(title)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Text(value)
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.primary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
 // MARK: - Section Transition
 
 struct SectionTransition: ViewModifier {
@@ -172,3 +252,56 @@ extension View {
         modifier(SectionTransition())
     }
 }
+
+// MARK: - Animated Number Counter
+
+struct AnimatedCounter: View {
+    let value: Double
+    let format: (Double) -> String
+
+    @State private var displayValue: Double = 0
+
+    var body: some View {
+        Text(format(displayValue))
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.8)) {
+                    displayValue = value
+                }
+            }
+            .onChange(of: value) { newValue in
+                withAnimation(.easeOut(duration: 0.5)) {
+                    displayValue = newValue
+                }
+            }
+    }
+}
+
+// MARK: - Pulse Animation Modifier
+
+struct PulseModifier: ViewModifier {
+    let isActive: Bool
+    @State private var scale: CGFloat = 1.0
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(scale)
+            .onChange(of: isActive) { active in
+                if active {
+                    withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                        scale = 1.05
+                    }
+                } else {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        scale = 1.0
+                    }
+                }
+            }
+    }
+}
+
+extension View {
+    func pulseWhenActive(_ isActive: Bool) -> some View {
+        modifier(PulseModifier(isActive: isActive))
+    }
+}
+

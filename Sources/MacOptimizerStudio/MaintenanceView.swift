@@ -14,10 +14,10 @@ struct MaintenanceView: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
                 toolbar
-                taskGrid
                 if maintenanceViewModel.completedCount > 0 {
                     summaryBar
                 }
+                taskGrid
             }
             .padding(20)
             .frame(maxWidth: 1200)
@@ -82,42 +82,78 @@ struct MaintenanceView: View {
     // MARK: - Toolbar
 
     private var toolbar: some View {
-        HStack(spacing: 12) {
-            Button {
-                if maintenanceViewModel.selectedTasks.count == maintenanceViewModel.tasks.count {
-                    maintenanceViewModel.deselectAll()
-                } else {
-                    maintenanceViewModel.selectAll()
+        StyledCard {
+            HStack(spacing: 12) {
+                Button {
+                    if maintenanceViewModel.selectedTasks.count == maintenanceViewModel.tasks.count {
+                        maintenanceViewModel.deselectAll()
+                    } else {
+                        maintenanceViewModel.selectAll()
+                    }
+                } label: {
+                    Label(
+                        maintenanceViewModel.selectedTasks.count == maintenanceViewModel.tasks.count
+                            ? "Deselect All" : "Select All",
+                        systemImage: maintenanceViewModel.selectedTasks.count == maintenanceViewModel.tasks.count
+                            ? "checklist.unchecked" : "checklist.checked"
+                    )
                 }
-            } label: {
-                Label(
-                    maintenanceViewModel.selectedTasks.count == maintenanceViewModel.tasks.count
-                        ? "Deselect All" : "Select All",
-                    systemImage: maintenanceViewModel.selectedTasks.count == maintenanceViewModel.tasks.count
-                        ? "checklist.unchecked" : "checklist.checked"
-                )
-            }
-            .buttonStyle(.bordered)
+                .buttonStyle(.bordered)
 
-            if !maintenanceViewModel.selectedTasks.isEmpty {
-                Text("\(maintenanceViewModel.selectedTasks.count) selected")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+                if !maintenanceViewModel.selectedTasks.isEmpty {
+                    Text("\(maintenanceViewModel.selectedTasks.count) selected")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
-            Spacer()
+                Spacer()
 
-            Button {
-                runSelectedTasks()
-            } label: {
-                Label(
-                    maintenanceViewModel.anyRunning ? "Running..." : "Run Selected",
-                    systemImage: "play.fill"
-                )
+                Button {
+                    runSelectedTasks()
+                } label: {
+                    Label(
+                        maintenanceViewModel.anyRunning ? "Running..." : "Run Selected",
+                        systemImage: "play.fill"
+                    )
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                .disabled(maintenanceViewModel.selectedTasks.isEmpty || maintenanceViewModel.anyRunning)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
-            .disabled(maintenanceViewModel.selectedTasks.isEmpty || maintenanceViewModel.anyRunning)
+        }
+    }
+
+    // MARK: - Summary Bar
+
+    private var summaryBar: some View {
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                CardSectionHeader(icon: "chart.bar.fill", title: "Run Summary", color: .orange)
+                Divider()
+                HStack(spacing: 16) {
+                    StatCard(
+                        icon: "checkmark.circle",
+                        title: "Completed",
+                        value: "\(maintenanceViewModel.completedCount)",
+                        tint: .secondary
+                    )
+                    StatCard(
+                        icon: "checkmark.circle.fill",
+                        title: "Succeeded",
+                        value: "\(maintenanceViewModel.successCount)",
+                        tint: .green
+                    )
+                    let failCount = maintenanceViewModel.completedCount - maintenanceViewModel.successCount
+                    if failCount > 0 {
+                        StatCard(
+                            icon: "xmark.circle.fill",
+                            title: "Failed",
+                            value: "\(failCount)",
+                            tint: .red
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -142,114 +178,115 @@ struct MaintenanceView: View {
         let result = maintenanceViewModel.result(for: task.id)
         let isExpanded = expandedResults.contains(task.id)
 
-        return VStack(alignment: .leading, spacing: 10) {
-            // Top row: checkbox, icon, name, badges, run button
-            HStack(alignment: .top, spacing: 10) {
-                Button {
-                    maintenanceViewModel.toggleSelection(task.id)
-                } label: {
-                    Image(systemName: isSelected ? "checkmark.square.fill" : "square")
-                        .font(.title3)
-                        .foregroundStyle(isSelected ? .orange : .secondary)
-                }
-                .buttonStyle(.plain)
+        return StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                // Top row: checkbox, icon, name, badges, run button
+                HStack(alignment: .top, spacing: 10) {
+                    Button {
+                        maintenanceViewModel.toggleSelection(task.id)
+                    } label: {
+                        Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                            .font(.title3)
+                            .foregroundStyle(isSelected ? .orange : .secondary)
+                    }
+                    .buttonStyle(.plain)
 
-                Image(systemName: task.icon)
-                    .font(.title2)
-                    .foregroundStyle(.orange)
-                    .frame(width: 28, height: 28)
+                    Image(systemName: task.icon)
+                        .font(.title2)
+                        .foregroundStyle(.orange)
+                        .frame(width: 28, height: 28)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(task.name)
-                            .font(.headline)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(task.name)
+                                .font(.headline)
 
-                        if task.requiresSudo {
-                            sudoBadge
+                            if task.requiresSudo {
+                                sudoBadge
+                            }
+
+                            statusIndicator(isRunning: isRunning, result: result)
                         }
 
-                        statusIndicator(isRunning: isRunning, result: result)
-                    }
-
-                    Text(task.estimatedDuration)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-
-                Spacer()
-
-                Button {
-                    runSingleTask(task)
-                } label: {
-                    Label("Run", systemImage: "play.fill")
-                        .font(.subheadline)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(isRunning)
-            }
-
-            // Description
-            Text(task.description)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(isExpanded ? nil : 2)
-
-            // Result output (expandable)
-            if let result {
-                Divider()
-
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        Image(systemName: result.success ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundStyle(result.success ? .green : .red)
-                            .font(.subheadline)
-
-                        Text(result.success ? "Completed" : "Failed")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(result.success ? .green : .red)
-
-                        Text(String(format: "%.1fs", result.duration))
+                        Text(task.estimatedDuration)
                             .font(.caption)
                             .foregroundStyle(.tertiary)
-
-                        Spacer()
-
-                        if !result.output.isEmpty {
-                            Button {
-                                toggleExpanded(task.id)
-                            } label: {
-                                Label(
-                                    isExpanded ? "Hide Output" : "Show Output",
-                                    systemImage: isExpanded ? "chevron.up" : "chevron.down"
-                                )
-                                .font(.caption)
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.secondary)
-                        }
                     }
 
-                    if isExpanded, !result.output.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: true) {
-                            Text(result.output)
-                                .font(.system(.caption, design: .monospaced))
+                    Spacer()
+
+                    Button {
+                        runSingleTask(task)
+                    } label: {
+                        Label("Run", systemImage: "play.fill")
+                            .font(.subheadline)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(isRunning)
+                }
+
+                Divider()
+
+                // Description
+                Text(task.description)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(isExpanded ? nil : 2)
+
+                // Result output (expandable)
+                if let result {
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: result.success ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundStyle(result.success ? .green : .red)
+                                .font(.subheadline)
+
+                            Text(result.success ? "Completed" : "Failed")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(result.success ? .green : .red)
+
+                            Text(String(format: "%.1fs", result.duration))
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+
+                            Spacer()
+
+                            if !result.output.isEmpty {
+                                Button {
+                                    toggleExpanded(task.id)
+                                } label: {
+                                    Label(
+                                        isExpanded ? "Hide Output" : "Show Output",
+                                        systemImage: isExpanded ? "chevron.up" : "chevron.down"
+                                    )
+                                    .font(.caption)
+                                }
+                                .buttonStyle(.plain)
                                 .foregroundStyle(.secondary)
-                                .textSelection(.enabled)
+                            }
                         }
-                        .frame(maxHeight: 120)
-                        .padding(8)
-                        .background(Color.primary.opacity(0.04))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                        if isExpanded, !result.output.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: true) {
+                                Text(result.output)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                    .textSelection(.enabled)
+                            }
+                            .frame(maxHeight: 120)
+                            .padding(8)
+                            .background(Color.primary.opacity(0.04))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
                     }
                 }
             }
         }
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .stroke(isSelected ? Color.orange.opacity(0.5) : Color.clear, lineWidth: 1.5)
         )
         .help(task.description)
@@ -277,41 +314,6 @@ struct MaintenanceView: View {
                 .foregroundStyle(result.success ? .green : .red)
                 .font(.subheadline)
         }
-    }
-
-    // MARK: - Summary Bar
-
-    private var summaryBar: some View {
-        HStack(spacing: 16) {
-            Label(
-                "\(maintenanceViewModel.completedCount) completed",
-                systemImage: "checkmark.circle"
-            )
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-
-            Label(
-                "\(maintenanceViewModel.successCount) succeeded",
-                systemImage: "checkmark.circle.fill"
-            )
-            .font(.subheadline)
-            .foregroundStyle(.green)
-
-            let failCount = maintenanceViewModel.completedCount - maintenanceViewModel.successCount
-            if failCount > 0 {
-                Label(
-                    "\(failCount) failed",
-                    systemImage: "xmark.circle.fill"
-                )
-                .font(.subheadline)
-                .foregroundStyle(.red)
-            }
-
-            Spacer()
-        }
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - Actions

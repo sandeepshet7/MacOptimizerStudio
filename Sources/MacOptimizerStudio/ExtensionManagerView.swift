@@ -70,14 +70,16 @@ struct ExtensionManagerView: View {
     }
 
     private var filterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                filterChip(label: "All (\(viewModel.extensions.count))", isActive: viewModel.selectedFilter == nil) {
-                    viewModel.selectedFilter = nil
-                }
-                ForEach(viewModel.typeCounts, id: \.0) { type, count in
-                    filterChip(label: "\(type.rawValue) (\(count))", isActive: viewModel.selectedFilter == type) {
-                        viewModel.selectedFilter = type
+        StyledCard {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    filterChip(label: "All (\(viewModel.extensions.count))", isActive: viewModel.selectedFilter == nil) {
+                        viewModel.selectedFilter = nil
+                    }
+                    ForEach(viewModel.typeCounts, id: \.0) { type, count in
+                        filterChip(label: "\(type.rawValue) (\(count))", isActive: viewModel.selectedFilter == type) {
+                            viewModel.selectedFilter = type
+                        }
                     }
                 }
             }
@@ -98,16 +100,22 @@ struct ExtensionManagerView: View {
     }
 
     private var extensionList: some View {
-        LazyVStack(spacing: 0) {
-            ForEach(viewModel.filteredExtensions) { ext in
-                extensionRow(ext)
-                if ext.id != viewModel.filteredExtensions.last?.id {
-                    Divider().padding(.leading, 52)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 10) {
+                CardSectionHeader(icon: "puzzlepiece.extension.fill", title: "Extensions", color: .purple)
+
+                Divider()
+
+                LazyVStack(spacing: 0) {
+                    ForEach(viewModel.filteredExtensions) { ext in
+                        extensionRow(ext)
+                        if ext.id != viewModel.filteredExtensions.last?.id {
+                            Divider()
+                        }
+                    }
                 }
             }
         }
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func extensionRow(_ ext: SystemExtension) -> some View {
@@ -152,8 +160,7 @@ struct ExtensionManagerView: View {
             .tint(.red)
             .help("Remove extension")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 6)
     }
 
     private func colorForType(_ type: ExtensionType) -> Color {
@@ -170,75 +177,75 @@ struct ExtensionManagerView: View {
     // MARK: - States
 
     private var loadingState: some View {
-        VStack(spacing: 12) {
-            ForEach(0..<4, id: \.self) { _ in
-                SkeletonRow()
+        StyledCard {
+            VStack(spacing: 12) {
+                ForEach(0..<4, id: \.self) { _ in
+                    SkeletonRow()
+                }
             }
         }
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var emptyState: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Color.green.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.green.opacity(0.7))
+        StyledCard {
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.08))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.green.opacity(0.7))
+                }
+                VStack(spacing: 6) {
+                    Text("No Extensions Found")
+                        .font(.title3.weight(.semibold))
+                    Text("No third-party system extensions, plugins, or preference panes detected.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 380)
+                }
             }
-            VStack(spacing: 6) {
-                Text("No Extensions Found")
-                    .font(.title3.weight(.semibold))
-                Text("No third-party system extensions, plugins, or preference panes detected.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 380)
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var scanPrompt: some View {
         Button {
             Task { await viewModel.scan() }
         } label: {
-            VStack(spacing: 18) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.08))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "puzzlepiece.extension.fill")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.orange.opacity(0.6))
+            StyledCard {
+                VStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.08))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "puzzlepiece.extension.fill")
+                            .font(.system(size: 44))
+                            .foregroundStyle(.orange.opacity(0.6))
+                    }
+                    VStack(spacing: 6) {
+                        Text("Scan Extensions")
+                            .font(.title3.weight(.semibold))
+                        Text("Find Safari extensions, QuickLook plugins, preference panes, and more.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 380)
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.caption.weight(.semibold))
+                        Text("Click to scan")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .foregroundStyle(.orange)
                 }
-                VStack(spacing: 6) {
-                    Text("Scan Extensions")
-                        .font(.title3.weight(.semibold))
-                    Text("Find Safari extensions, QuickLook plugins, preference panes, and more.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 380)
-                }
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.caption.weight(.semibold))
-                    Text("Click to scan")
-                        .font(.subheadline.weight(.medium))
-                }
-                .foregroundStyle(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 28)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 44)
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }

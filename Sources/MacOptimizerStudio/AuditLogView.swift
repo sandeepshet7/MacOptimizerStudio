@@ -55,29 +55,10 @@ struct AuditLogView: View {
 
     private var statsBar: some View {
         HStack(spacing: 16) {
-            statCard(title: "Total Actions", value: "\(viewModel.totalActions)", icon: "list.bullet.clipboard", tint: .blue)
-            statCard(title: "Space Freed", value: ByteFormatting.string(viewModel.totalBytesFreed), icon: "externaldrive", tint: .green)
-            statCard(title: "Action Types", value: "\(viewModel.actionCounts.count)", icon: "tag", tint: .purple)
+            StatCard(icon: "list.bullet.clipboard", title: "Total Actions", value: "\(viewModel.totalActions)", tint: .blue)
+            StatCard(icon: "externaldrive", title: "Space Freed", value: ByteFormatting.string(viewModel.totalBytesFreed), tint: .green)
+            StatCard(icon: "tag", title: "Action Types", value: "\(viewModel.actionCounts.count)", tint: .purple)
         }
-    }
-
-    private func statCard(title: String, value: String, icon: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .foregroundStyle(tint)
-                    .font(.caption)
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Text(value)
-                .font(.headline)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - Log Entries
@@ -85,20 +66,22 @@ struct AuditLogView: View {
     @ViewBuilder
     private var logEntries: some View {
         if viewModel.entries.isEmpty {
-            VStack(spacing: 12) {
-                Image(systemName: "checkmark.shield")
-                    .font(.system(size: 36))
-                    .foregroundStyle(.green)
-                Text("No actions recorded yet")
-                    .font(.headline)
-                Text("Actions like file shredding, cache cleanup, and process termination will be logged here automatically.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 400)
+            StyledCard {
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.shield")
+                        .font(.system(size: 36))
+                        .foregroundStyle(.green)
+                    Text("No actions recorded yet")
+                        .font(.headline)
+                    Text("Actions like file shredding, cache cleanup, and process termination will be logged here automatically.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 400)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 40)
         } else {
             LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(viewModel.entriesByDay, id: \.0) { day, entries in
@@ -114,16 +97,16 @@ struct AuditLogView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            VStack(spacing: 0) {
-                ForEach(entries) { entry in
-                    AuditEntryRow(entry: entry)
-                    if entry.id != entries.last?.id {
-                        Divider().padding(.leading, 44)
+            StyledCard {
+                VStack(spacing: 0) {
+                    ForEach(entries) { entry in
+                        AuditEntryRow(entry: entry)
+                        if entry.id != entries.last?.id {
+                            Divider()
+                        }
                     }
                 }
             }
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -199,8 +182,7 @@ private struct AuditEntryRow: View {
                         }
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.vertical, 6)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -220,9 +202,8 @@ private struct AuditEntryRow: View {
                         }
                     }
                 }
-                .padding(.leading, 46)
-                .padding(.trailing, 12)
-                .padding(.bottom, 8)
+                .padding(.leading, 34)
+                .padding(.bottom, 6)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }

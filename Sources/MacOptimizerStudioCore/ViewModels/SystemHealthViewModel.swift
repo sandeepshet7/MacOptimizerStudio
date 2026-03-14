@@ -66,11 +66,11 @@ public final class SystemHealthViewModel: ObservableObject {
         let minutes = (Int(uptime) % 3600) / 60
 
         if days > 0 {
-            return "\(days)d \(hours)h \(minutes)m"
+            return "\(days) day\(days == 1 ? "" : "s"), \(hours)h \(minutes)m"
         } else if hours > 0 {
-            return "\(hours)h \(minutes)m"
+            return "\(hours) hour\(hours == 1 ? "" : "s"), \(minutes)m"
         } else {
-            return "\(minutes)m"
+            return "\(minutes) minute\(minutes == 1 ? "" : "s")"
         }
     }
 

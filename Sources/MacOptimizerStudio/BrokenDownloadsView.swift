@@ -100,36 +100,37 @@ struct BrokenDownloadsView: View {
     // MARK: - Results List
 
     private func resultsList(_ result: BrokenDownloadsScanResult) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Broken Downloads")
-                    .font(.headline)
-                Text("\(result.files.count)")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.15))
-                    .foregroundStyle(.orange)
-                    .clipShape(Capsule())
-                Text(ByteFormatting.string(result.totalBytes))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Select All") { viewModel.selectAll() }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-            }
+        StyledCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    CardSectionHeader(icon: "arrow.down.circle.dotted", title: "Broken Downloads", color: .orange)
+                    Text("\(result.files.count)")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.15))
+                        .foregroundStyle(.orange)
+                        .clipShape(Capsule())
+                    Text(ByteFormatting.string(result.totalBytes))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Select All") { viewModel.selectAll() }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
 
-            VStack(spacing: 0) {
-                ForEach(result.files) { item in
-                    itemRow(item)
-                    if item.id != result.files.last?.id {
-                        Divider().padding(.leading, 44)
+                Divider()
+
+                VStack(spacing: 0) {
+                    ForEach(result.files) { item in
+                        itemRow(item)
+                        if item.id != result.files.last?.id {
+                            Divider()
+                        }
                     }
                 }
             }
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -185,8 +186,7 @@ struct BrokenDownloadsView: View {
             .controlSize(.mini)
             .help("Reveal in Finder")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
     }
 
     // MARK: - Floating Bar
@@ -219,73 +219,73 @@ struct BrokenDownloadsView: View {
     // MARK: - States
 
     private var loadingState: some View {
-        VStack(spacing: 12) {
-            ForEach(0..<4, id: \.self) { _ in SkeletonRow() }
+        StyledCard {
+            VStack(spacing: 12) {
+                ForEach(0..<4, id: \.self) { _ in SkeletonRow() }
+            }
         }
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var cleanState: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Color.green.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.green.opacity(0.7))
+        StyledCard {
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.08))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.green.opacity(0.7))
+                }
+                VStack(spacing: 6) {
+                    Text("No Broken Downloads Found")
+                        .font(.title3.weight(.semibold))
+                    Text("Your Downloads folder is clean - no incomplete or broken download files were found.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 380)
+                }
             }
-            VStack(spacing: 6) {
-                Text("No Broken Downloads Found")
-                    .font(.title3.weight(.semibold))
-                Text("Your Downloads folder is clean - no incomplete or broken download files were found.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 380)
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var scanPrompt: some View {
         Button {
             Task { await viewModel.scan() }
         } label: {
-            VStack(spacing: 18) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.08))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "arrow.down.circle.dotted")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.orange.opacity(0.6))
+            StyledCard {
+                VStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.08))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "arrow.down.circle.dotted")
+                            .font(.system(size: 44))
+                            .foregroundStyle(.orange.opacity(0.6))
+                    }
+                    VStack(spacing: 6) {
+                        Text("Scan for Broken Downloads")
+                            .font(.title3.weight(.semibold))
+                        Text("Find incomplete .crdownload, .part, .tmp, and other broken download files in your Downloads folder.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 380)
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.caption.weight(.semibold))
+                        Text("Click to scan")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .foregroundStyle(.orange)
                 }
-                VStack(spacing: 6) {
-                    Text("Scan for Broken Downloads")
-                        .font(.title3.weight(.semibold))
-                    Text("Find incomplete .crdownload, .part, .tmp, and other broken download files in your Downloads folder.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 380)
-                }
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.caption.weight(.semibold))
-                    Text("Click to scan")
-                        .font(.subheadline.weight(.medium))
-                }
-                .foregroundStyle(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 28)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 44)
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }

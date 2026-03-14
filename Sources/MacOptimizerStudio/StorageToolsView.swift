@@ -75,45 +75,58 @@ struct StorageToolsView: View {
     // MARK: - Space Lens
 
     private var spaceLensContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             if let tree = storageToolsViewModel.folderTree {
-                HStack {
-                    Button("Choose Folder") {
-                        pickFolder { url in
-                            Task { await storageToolsViewModel.scanFolderSizes(at: url) }
+                // Controls card
+                StyledCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        CardSectionHeader(icon: "chart.bar.doc.horizontal", title: "Folder Breakdown", color: .blue)
+                        Divider()
+                        HStack {
+                            Button("Choose Folder") {
+                                pickFolder { url in
+                                    Task { await storageToolsViewModel.scanFolderSizes(at: url) }
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.orange)
+
+                            if let root = storageToolsViewModel.spaceLensRoot {
+                                Text(root.path)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+
+                            Spacer()
+
+                            Text(ByteFormatting.string(tree.sizeBytes))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.orange)
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.orange)
+                }
 
-                    if let root = storageToolsViewModel.spaceLensRoot {
-                        Text(root.path)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
+                // Tree card
+                StyledCard {
+                    VStack(spacing: 0) {
+                        folderNodeView(tree, depth: 0)
                     }
-
-                    Spacer()
-
-                    Text(ByteFormatting.string(tree.sizeBytes))
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.orange)
                 }
-
-                VStack(spacing: 0) {
-                    folderNodeView(tree, depth: 0)
-                }
-                .padding(8)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
             } else if storageToolsViewModel.isScanningSizes {
-                HStack {
-                    ProgressView().controlSize(.small)
-                    Text("Scanning folder sizes...").font(.subheadline).foregroundStyle(.secondary)
+                StyledCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        CardSectionHeader(icon: "chart.bar.doc.horizontal", title: "Space Lens", color: .blue)
+                        Divider()
+                        HStack {
+                            ProgressView().controlSize(.small)
+                            Text("Scanning folder sizes...").font(.subheadline).foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                        ForEach(0..<4, id: \.self) { _ in SkeletonCard(height: 24) }
+                    }
                 }
-                .padding(.vertical, 20)
-                ForEach(0..<4, id: \.self) { _ in SkeletonCard(height: 24) }
             } else {
                 clickableEmptyState(icon: "chart.bar.doc.horizontal", title: "Space Lens", detail: "Choose a folder to visualize which subfolders use the most disk space. Click to drill down into any folder.") {
                     pickFolder { url in
@@ -196,143 +209,170 @@ struct StorageToolsView: View {
     // MARK: - Large Files
 
     private var largeFilesContent: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // Controls row
-            HStack(spacing: 12) {
-                Button {
-                    pickFolder { url in
-                        storageToolsViewModel.addRoots([url])
-                        Task { await storageToolsViewModel.findLargeFiles() }
+        VStack(alignment: .leading, spacing: 16) {
+            // Controls card
+            StyledCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    CardSectionHeader(icon: "doc.badge.ellipsis", title: "Scan Settings", color: .orange)
+                    Divider()
+                    HStack(spacing: 12) {
+                        Button {
+                            pickFolder { url in
+                                storageToolsViewModel.addRoots([url])
+                                Task { await storageToolsViewModel.findLargeFiles() }
+                            }
+                        } label: {
+                            Label("Add Folder", systemImage: "folder.badge.plus")
+                                .font(.body.weight(.medium))
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                        .controlSize(.large)
+
+                        if storageToolsViewModel.isScanningLargeFiles {
+                            ProgressView().controlSize(.small)
+                            Text(storageToolsViewModel.largeFilesProgress)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        HStack(spacing: 6) {
+                            Text("Min size:")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Picker("Min Size", selection: $storageToolsViewModel.minFileSizeMB) {
+                                Text("50 MB").tag(50.0)
+                                Text("100 MB").tag(100.0)
+                                Text("500 MB").tag(500.0)
+                                Text("1 GB").tag(1024.0)
+                            }
+                            .labelsHidden()
+                            .frame(width: 110)
+                        }
                     }
-                } label: {
-                    Label("Add Folder", systemImage: "folder.badge.plus")
-                        .font(.body.weight(.medium))
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
-                .controlSize(.large)
-
-                if storageToolsViewModel.isScanningLargeFiles {
-                    ProgressView().controlSize(.small)
-                    Text(storageToolsViewModel.largeFilesProgress)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                HStack(spacing: 6) {
-                    Text("Min size:")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Picker("Min Size", selection: $storageToolsViewModel.minFileSizeMB) {
-                        Text("50 MB").tag(50.0)
-                        Text("100 MB").tag(100.0)
-                        Text("500 MB").tag(500.0)
-                        Text("1 GB").tag(1024.0)
-                    }
-                    .labelsHidden()
-                    .frame(width: 110)
                 }
             }
 
-            // Selected folders
+            // Selected folders card
             if !storageToolsViewModel.scanRoots.isEmpty {
-                HStack(spacing: 8) {
-                    ForEach(storageToolsViewModel.scanRoots, id: \.path) { root in
-                        HStack(spacing: 6) {
-                            Image(systemName: "folder.fill")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
-                            Text(root.lastPathComponent)
-                                .font(.subheadline)
-                                .lineLimit(1)
+                StyledCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        CardSectionHeader(icon: "folder.fill", title: "Selected Folders", color: .orange)
+                        Divider()
+                        HStack(spacing: 8) {
+                            ForEach(storageToolsViewModel.scanRoots, id: \.path) { root in
+                                HStack(spacing: 6) {
+                                    Image(systemName: "folder.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                    Text(root.lastPathComponent)
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                    Button {
+                                        storageToolsViewModel.scanRoots.removeAll { $0 == root }
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.orange.opacity(0.1))
+                                .clipShape(Capsule())
+                            }
+
                             Button {
-                                storageToolsViewModel.scanRoots.removeAll { $0 == root }
+                                pickFolder { url in
+                                    storageToolsViewModel.addRoots([url])
+                                    Task { await storageToolsViewModel.findLargeFiles() }
+                                }
                             } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                Image(systemName: "plus.circle")
+                                    .font(.body)
+                                    .foregroundStyle(.orange)
                             }
                             .buttonStyle(.plain)
+                            .help("Add another folder")
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.orange.opacity(0.1))
-                        .clipShape(Capsule())
                     }
-
-                    Button {
-                        pickFolder { url in
-                            storageToolsViewModel.addRoots([url])
-                            Task { await storageToolsViewModel.findLargeFiles() }
-                        }
-                    } label: {
-                        Image(systemName: "plus.circle")
-                            .font(.body)
-                            .foregroundStyle(.orange)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Add another folder")
                 }
             }
 
             // Results
             if storageToolsViewModel.isScanningLargeFiles {
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.regular)
-                        Text("Scanning for large files...")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        if !storageToolsViewModel.largeFilesProgress.isEmpty {
-                            Text(storageToolsViewModel.largeFilesProgress)
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                StyledCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        CardSectionHeader(icon: "magnifyingglass", title: "Scanning", color: .blue)
+                        Divider()
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.regular)
+                            Text("Scanning for large files...")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            if !storageToolsViewModel.largeFilesProgress.isEmpty {
+                                Text(storageToolsViewModel.largeFilesProgress)
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
+                        .padding(.vertical, 4)
+                        ForEach(0..<4, id: \.self) { _ in SkeletonCard(height: 28) }
                     }
-                    .padding(.vertical, 12)
-                    ForEach(0..<4, id: \.self) { _ in SkeletonCard(height: 28) }
                 }
             } else if !storageToolsViewModel.largeFiles.isEmpty {
-                HStack {
-                    Text("\(storageToolsViewModel.largeFiles.count) large files found")
-                        .font(.headline)
-                    Spacer()
-                    Text("Total: \(ByteFormatting.string(storageToolsViewModel.totalLargeFilesSize))")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.orange)
+                // Summary stats row
+                HStack(spacing: 12) {
+                    StatCard(
+                        icon: "doc.fill",
+                        title: "Files Found",
+                        value: "\(storageToolsViewModel.largeFiles.count)",
+                        tint: .blue
+                    )
+                    StatCard(
+                        icon: "internaldrive",
+                        title: "Total Size",
+                        value: ByteFormatting.string(storageToolsViewModel.totalLargeFilesSize),
+                        tint: .orange
+                    )
                 }
 
-                VStack(spacing: 0) {
-                    largeFileHeader
-                    Divider()
-                    ForEach(storageToolsViewModel.largeFiles.prefix(200)) { file in
-                        largeFileRow(file)
+                // Results table card
+                StyledCard {
+                    VStack(alignment: .leading, spacing: 0) {
+                        CardSectionHeader(icon: "list.bullet", title: "Large Files", color: .orange)
+                            .padding(.bottom, 14)
                         Divider()
+                        largeFileHeader
+                        Divider()
+                        ForEach(storageToolsViewModel.largeFiles.prefix(200)) { file in
+                            largeFileRow(file)
+                            Divider()
+                        }
                     }
                 }
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
             } else if !storageToolsViewModel.scanRoots.isEmpty {
                 // Folders added but no large files found
-                VStack(spacing: 10) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.green)
-                    Text("No large files found")
-                        .font(.headline)
-                    Text("No files above \(Int(storageToolsViewModel.minFileSizeMB)) MB in the selected folders.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text("Try lowering the minimum size or adding more folders.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                StyledCard {
+                    VStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.green)
+                        Text("No large files found")
+                            .font(.headline)
+                        Text("No files above \(Int(storageToolsViewModel.minFileSizeMB)) MB in the selected folders.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text("Try lowering the minimum size or adding more folders.")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 30)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
             } else {
                 clickableEmptyState(icon: "doc.badge.ellipsis", title: "Large & Old Files", detail: "Find files larger than your threshold that haven't been accessed recently. Great for finding forgotten downloads and old media files.") {
                     pickFolder { url in
@@ -418,30 +458,7 @@ struct StorageToolsView: View {
     // MARK: - Helpers
 
     private func emptyToolState(icon: String, title: String, detail: String) -> some View {
-        VStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(Color.orange.opacity(0.08))
-                    .frame(width: 70, height: 70)
-                Image(systemName: icon)
-                    .font(.system(size: 28))
-                    .foregroundStyle(.orange)
-            }
-            Text(title).font(.headline)
-            Text(detail)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 400)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-    }
-
-    private func clickableEmptyState(icon: String, title: String, detail: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        StyledCard {
             VStack(spacing: 14) {
                 ZStack {
                     Circle()
@@ -457,18 +474,41 @@ struct StorageToolsView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 400)
-
-                HStack(spacing: 6) {
-                    Image(systemName: "folder.badge.plus")
-                    Text("Choose Folder")
-                }
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.orange)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 40)
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .padding(.vertical, 24)
+        }
+    }
+
+    private func clickableEmptyState(icon: String, title: String, detail: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            StyledCard {
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.08))
+                            .frame(width: 70, height: 70)
+                        Image(systemName: icon)
+                            .font(.system(size: 28))
+                            .foregroundStyle(.orange)
+                    }
+                    Text(title).font(.headline)
+                    Text(detail)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 400)
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "folder.badge.plus")
+                        Text("Choose Folder")
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.orange)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            }
         }
         .buttonStyle(.plain)
     }

@@ -37,7 +37,7 @@ struct DiskView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 16) {
                 scanRootsPanel
 
                 if viewModel.report != nil {
@@ -105,89 +105,91 @@ struct DiskView: View {
         Button {
             addFolder()
         } label: {
-            VStack(spacing: 18) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.08))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "externaldrive.badge.plus")
-                        .font(.system(size: 38))
-                        .foregroundStyle(.orange.opacity(0.7))
+            StyledCard {
+                VStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.08))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "externaldrive.badge.plus")
+                            .font(.system(size: 38))
+                            .foregroundStyle(.orange.opacity(0.7))
+                    }
+                    VStack(spacing: 6) {
+                        Text("Add folders and run a scan")
+                            .font(.title3.weight(.semibold))
+                        Text("Find cleanable targets across 15 ecosystems — Python, Node.js, Rust, Swift, Go, and more.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 400)
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.caption.weight(.semibold))
+                        Text("Click to add folders")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .foregroundStyle(.orange)
                 }
-                VStack(spacing: 6) {
-                    Text("Add folders and run a scan")
-                        .font(.title3.weight(.semibold))
-                    Text("Find cleanable targets across 15 ecosystems — Python, Node.js, Rust, Swift, Go, and more.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 400)
-                }
-                HStack(spacing: 6) {
-                    Image(systemName: "folder.badge.plus")
-                        .font(.caption.weight(.semibold))
-                    Text("Click to add folders")
-                        .font(.subheadline.weight(.medium))
-                }
-                .foregroundStyle(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 28)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 44)
-            .background(panelFill)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
 
     private func scanErrorBanner(_ message: String) -> some View {
-        VStack(spacing: 14) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 36))
-                .foregroundStyle(.orange)
-            Text("Scan Failed")
-                .font(.title3.weight(.semibold))
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 500)
-                .textSelection(.enabled)
-            if message.contains("scanner binary not found") || message.contains("Rust scanner") {
-                Text("Run scripts/build_rust_scanner.sh to build the scanner.")
-                    .font(.caption)
+        StyledCard {
+            VStack(spacing: 14) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 36))
                     .foregroundStyle(.orange)
+                Text("Scan Failed")
+                    .font(.title3.weight(.semibold))
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 500)
+                    .textSelection(.enabled)
+                if message.contains("scanner binary not found") || message.contains("Rust scanner") {
+                    Text("Run scripts/build_rust_scanner.sh to build the scanner.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                Button("Retry Scan") {
+                    viewModel.clearError()
+                    Task { await viewModel.scan(maxDepth: scanPreset.maxDepth, top: scanPreset.top) }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                .controlSize(.regular)
             }
-            Button("Retry Scan") {
-                viewModel.clearError()
-                Task { await viewModel.scan(maxDepth: scanPreset.maxDepth, top: scanPreset.top) }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
-            .controlSize(.regular)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var scanningState: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .controlSize(.large)
-            Text("Scanning folders...")
-                .font(.title3.weight(.semibold))
-            Text("Analyzing project directories for cleanup targets.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 10)], spacing: 10) {
-                ForEach(0..<4, id: \.self) { _ in
-                    SkeletonCard(height: 80)
+        StyledCard {
+            VStack(spacing: 16) {
+                ProgressView()
+                    .controlSize(.large)
+                Text("Scanning folders...")
+                    .font(.title3.weight(.semibold))
+                Text("Analyzing project directories for cleanup targets.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 10)], spacing: 10) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        SkeletonCard(height: 80)
+                    }
                 }
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
     }
 
     private func addFolder() {
@@ -208,58 +210,59 @@ struct DiskView: View {
     // MARK: - Scan Roots
 
     private var scanRootsPanel: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Scan Roots")
-                    .font(.headline)
-                Spacer()
-                if viewModel.isScanning {
-                    ProgressView().controlSize(.small)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    CardSectionHeader(icon: "folder.fill", title: "Scan Roots", color: .orange)
+                    Spacer()
+                    if viewModel.isScanning {
+                        ProgressView().controlSize(.small)
+                    }
+                    if let duration = viewModel.lastScanDuration {
+                        Text(String(format: "%.1fs", duration))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                if let duration = viewModel.lastScanDuration {
-                    Text(String(format: "%.1fs", duration))
-                        .font(.caption)
+
+                if viewModel.roots.isEmpty {
+                    Text("No roots selected. Use Add Folder in the top bar or drag folders here.")
                         .foregroundStyle(.secondary)
-                }
-            }
-
-            if viewModel.roots.isEmpty {
-                Text("No roots selected. Use Add Folder in the top bar or drag folders here.")
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 6)
-            } else {
-                ForEach(viewModel.roots, id: \.path) { root in
-                    HStack {
-                        Image(systemName: "folder")
-                            .foregroundColor(.orange)
-                        Text(root.path)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .font(.subheadline)
-
-                        Spacer()
-
-                        Button {
-                            revealInFinder(path: root.path)
-                        } label: {
-                            Image(systemName: "arrow.right.circle")
-                                .foregroundStyle(.secondary)
+                        .padding(.vertical, 6)
+                } else {
+                    ForEach(Array(viewModel.roots.enumerated()), id: \.element.path) { index, root in
+                        if index > 0 {
+                            Divider()
                         }
-                        .buttonStyle(.plain)
-                        .help("Reveal in Finder")
+                        HStack {
+                            Image(systemName: "folder")
+                                .foregroundColor(.orange)
+                            Text(root.path)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .font(.subheadline)
 
-                        Button("Remove") {
-                            viewModel.removeRoot(root)
+                            Spacer()
+
+                            Button {
+                                revealInFinder(path: root.path)
+                            } label: {
+                                Image(systemName: "arrow.right.circle")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Reveal in Finder")
+
+                            Button("Remove") {
+                                viewModel.removeRoot(root)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.secondary)
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
                     }
                 }
             }
         }
-        .padding(14)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Selection Bar
@@ -340,37 +343,35 @@ struct DiskView: View {
         let isActive = selectedCategory == category
         let tint = categoryColor(category)
 
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: category.icon)
-                    .foregroundStyle(tint)
-                Text(category.displayName)
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-            }
+        return StyledCard {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: category.icon)
+                        .foregroundStyle(tint)
+                    Text(category.displayName)
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                }
 
-            Text(ByteFormatting.string(summary.sizeBytes))
-                .font(.title3.weight(.semibold))
-                .animation(.easeInOut(duration: 0.4), value: summary.sizeBytes)
-            ProportionalBar(value: categoryBarRatio(summary.sizeBytes), tint: tint)
-            Text("\(summary.count) folders")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Text(ByteFormatting.string(summary.sizeBytes))
+                    .font(.title3.weight(.semibold))
+                    .animation(.easeInOut(duration: 0.4), value: summary.sizeBytes)
+                ProportionalBar(value: categoryBarRatio(summary.sizeBytes), tint: tint)
+                Text("\(summary.count) folders")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            Button(isActive ? "Clear" : "Filter") {
-                selectedCategory = selectedCategory == category ? nil : category
-                folderTargetFilter = nil
+                Button(isActive ? "Clear" : "Filter") {
+                    selectedCategory = selectedCategory == category ? nil : category
+                    folderTargetFilter = nil
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isActive ? tint.opacity(0.8) : tint.opacity(0.15), lineWidth: isActive ? 2 : 1)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(isActive ? tint.opacity(0.8) : Color.clear, lineWidth: isActive ? 2 : 0)
         )
     }
 
@@ -379,42 +380,43 @@ struct DiskView: View {
     private var cleanupTargetsPanel: some View {
         let kinds = filteredKinds
 
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Cleanup Targets")
-                    .font(.headline)
-                Spacer()
-                if selectedCategory != nil || folderTargetFilter != nil {
-                    Button("Clear Filters") {
-                        selectedCategory = nil
-                        folderTargetFilter = nil
+        return StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    CardSectionHeader(icon: "trash.fill", title: "Cleanup Targets", color: .orange)
+                    Spacer()
+                    if selectedCategory != nil || folderTargetFilter != nil {
+                        Button("Clear Filters") {
+                            selectedCategory = nil
+                            folderTargetFilter = nil
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+
+                    Button {
+                        let roots = viewModel.roots.map(\.path)
+                        copyCommand(factory.safeBundleCommand(
+                            roots: roots,
+                            kinds: TargetKind.allCases.filter { viewModel.summary(for: $0).count > 0 },
+                            entries: viewModel.entriesGrouped()
+                        ))
+                    } label: {
+                        Label("Copy All Commands", systemImage: "doc.on.doc")
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .help("Copy all safe cleanup commands to clipboard. Paste in Terminal to run them.")
                 }
 
-                Button {
-                    let roots = viewModel.roots.map(\.path)
-                    copyCommand(factory.safeBundleCommand(
-                        roots: roots,
-                        kinds: TargetKind.allCases.filter { viewModel.summary(for: $0).count > 0 },
-                        entries: viewModel.entriesGrouped()
-                    ))
-                } label: {
-                    Label("Copy All Commands", systemImage: "doc.on.doc")
+                ForEach(Array(kinds.enumerated()), id: \.element) { index, kind in
+                    if index > 0 {
+                        Divider()
+                    }
+                    kindSection(kind: kind, tint: categoryColor(kind.category))
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .help("Copy all safe cleanup commands to clipboard. Paste in Terminal to run them.")
-            }
-
-            ForEach(kinds, id: \.self) { kind in
-                kindSection(kind: kind, tint: categoryColor(kind.category))
             }
         }
-        .padding(14)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func kindSection(kind: TargetKind, tint: Color) -> some View {
@@ -573,102 +575,101 @@ struct DiskView: View {
     // MARK: - Largest Folders Table
 
     private var largestFoldersPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Largest Folders")
-                    .font(.headline)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    CardSectionHeader(icon: "folder.fill.badge.questionmark", title: "Largest Folders", color: .purple)
 
-                Spacer()
+                    Spacer()
 
-                Toggle("100 MB+", isOn: $onlyLargeFolders)
-                    .toggleStyle(.switch)
-                    .font(.caption)
+                    Toggle("100 MB+", isOn: $onlyLargeFolders)
+                        .toggleStyle(.switch)
+                        .font(.caption)
 
-                TextField("Filter path", text: $searchQuery)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 200)
-            }
-
-            if viewModel.report != nil {
-                Table(sortedFolderTotals, sortOrder: $sortOrder) {
-                    TableColumn("Path", value: \.path) { total in
-                        HStack(spacing: 6) {
-                            Text(total.path)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Button {
-                                revealInFinder(path: total.path)
-                            } label: {
-                                Image(systemName: "arrow.right.circle")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .help("Reveal in Finder")
-                        }
-                    }
-                    .width(min: 340)
-
-                    TableColumn("Size", value: \.sizeBytes) { total in
-                        Text(ByteFormatting.string(total.sizeBytes))
-                    }
-                    .width(min: 100)
-
-                    TableColumn("%") { total in
-                        Text(String(format: "%.1f%%", folderPercent(total) * 100))
-                    }
-                    .width(min: 60)
-
-                    TableColumn("Bar") { total in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.primary.opacity(0.06))
-                                .frame(width: 100, height: 6)
-                            Capsule()
-                                .fill(Color.orange)
-                                .frame(width: max(4, 100 * folderPercent(total)), height: 6)
-                        }
-                    }
-                    .width(min: 120)
+                    TextField("Filter path", text: $searchQuery)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 200)
                 }
-                .frame(minHeight: 200)
+
+                if viewModel.report != nil {
+                    Table(sortedFolderTotals, sortOrder: $sortOrder) {
+                        TableColumn("Path", value: \.path) { total in
+                            HStack(spacing: 6) {
+                                Text(total.path)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Button {
+                                    revealInFinder(path: total.path)
+                                } label: {
+                                    Image(systemName: "arrow.right.circle")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Reveal in Finder")
+                            }
+                        }
+                        .width(min: 340)
+
+                        TableColumn("Size", value: \.sizeBytes) { total in
+                            Text(ByteFormatting.string(total.sizeBytes))
+                        }
+                        .width(min: 100)
+
+                        TableColumn("%") { total in
+                            Text(String(format: "%.1f%%", folderPercent(total) * 100))
+                        }
+                        .width(min: 60)
+
+                        TableColumn("Bar") { total in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.primary.opacity(0.06))
+                                    .frame(width: 100, height: 6)
+                                Capsule()
+                                    .fill(Color.orange)
+                                    .frame(width: max(4, 100 * folderPercent(total)), height: 6)
+                            }
+                        }
+                        .width(min: 120)
+                    }
+                    .frame(minHeight: 200)
+                }
             }
         }
-        .padding(14)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Scan Errors
 
     private func scanErrorsPanel(_ errors: [ScanErrorEntry]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Scan Errors (\(errors.count))", systemImage: "exclamationmark.triangle")
-                .font(.headline)
-                .foregroundStyle(.orange)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                CardSectionHeader(icon: "exclamationmark.triangle.fill", title: "Scan Errors (\(errors.count))", color: .orange)
 
-            ForEach(errors.prefix(5)) { error in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(error.path)
-                        .font(.system(.caption, design: .monospaced))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Text(error.message)
+                ForEach(Array(errors.prefix(5).enumerated()), id: \.element.id) { index, error in
+                    if index > 0 {
+                        Divider()
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(error.path)
+                            .font(.system(.caption, design: .monospaced))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text(error.message)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if errors.count > 5 {
+                    Divider()
+                    Text("+ \(errors.count - 5) more...")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                 }
             }
-            if errors.count > 5 {
-                Text("+ \(errors.count - 5) more...")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
         }
-        .padding(14)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .stroke(Color.orange.opacity(0.25), lineWidth: 1)
         )
     }
@@ -705,10 +706,6 @@ struct DiskView: View {
             .sorted { viewModel.summary(for: $0).sizeBytes > viewModel.summary(for: $1).sizeBytes }
         let topKinds = kindsWithResults.prefix(3)
         expandedKinds = Set(topKinds)
-    }
-
-    private var panelFill: some ShapeStyle {
-        .thinMaterial
     }
 
     private var filteredFolderTotals: [FolderTotal] {

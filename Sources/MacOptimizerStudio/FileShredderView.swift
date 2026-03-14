@@ -98,24 +98,21 @@ struct FileShredderView: View {
                 .disabled(viewModel.isShredding)
             }
 
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.body)
-                    .foregroundStyle(.red)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Permanent Deletion")
-                        .font(.subheadline.weight(.semibold))
+            StyledCard {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.body)
                         .foregroundStyle(.red)
-                    Text("Files added here will be overwritten 3 times with random data and then permanently deleted. This cannot be undone — files will NOT go to Trash and cannot be recovered by any tool.")
-                        .font(.caption)
-                        .foregroundStyle(.red.opacity(0.8))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Permanent Deletion")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.red)
+                        Text("Files added here will be overwritten 3 times with random data and then permanently deleted. This cannot be undone — files will NOT go to Trash and cannot be recovered by any tool.")
+                            .font(.caption)
+                            .foregroundStyle(.red.opacity(0.8))
+                    }
                 }
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.red.opacity(0.06))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.2), lineWidth: 1))
         }
     }
 
@@ -125,38 +122,38 @@ struct FileShredderView: View {
         Button {
             openFilePicker()
         } label: {
-            VStack(spacing: 18) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(isDragOver ? 0.2 : 0.08))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "doc.zipper")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.orange.opacity(0.6))
+            StyledCard {
+                VStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(isDragOver ? 0.2 : 0.08))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "doc.zipper")
+                            .font(.system(size: 44))
+                            .foregroundStyle(.orange.opacity(0.6))
+                    }
+                    VStack(spacing: 6) {
+                        Text("Drop Files to Shred")
+                            .font(.title3.weight(.semibold))
+                        Text("Drag and drop files here, or click to browse. Files will be securely overwritten 3 times with random data before permanent deletion.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 440)
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle")
+                            .font(.caption.weight(.semibold))
+                        Text("Click to add files")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .foregroundStyle(.orange)
                 }
-                VStack(spacing: 6) {
-                    Text("Drop Files to Shred")
-                        .font(.title3.weight(.semibold))
-                    Text("Drag and drop files here, or click to browse. Files will be securely overwritten 3 times with random data before permanent deletion.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 440)
-                }
-                HStack(spacing: 6) {
-                    Image(systemName: "plus.circle")
-                        .font(.caption.weight(.semibold))
-                    Text("Click to add files")
-                        .font(.subheadline.weight(.medium))
-                }
-                .foregroundStyle(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 28)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 44)
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 10)
                     .strokeBorder(
                         isDragOver ? Color.orange : Color.clear,
                         style: StrokeStyle(lineWidth: 2, dash: [8])
@@ -169,46 +166,47 @@ struct FileShredderView: View {
     // MARK: - File List
 
     private var fileList: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Files to Shred")
-                    .font(.headline)
-                Text("\(viewModel.files.count)")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.15))
-                    .foregroundStyle(.orange)
-                    .clipShape(Capsule())
-                Text(ByteFormatting.string(viewModel.totalBytes))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                if !viewModel.isShredding {
-                    Button("Clear All") { viewModel.clearAll() }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    CardSectionHeader(icon: "doc.fill", title: "Files to Shred", color: .orange)
+                    Text("\(viewModel.files.count)")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.15))
+                        .foregroundStyle(.orange)
+                        .clipShape(Capsule())
+                    Text(ByteFormatting.string(viewModel.totalBytes))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if !viewModel.isShredding {
+                        Button("Clear All") { viewModel.clearAll() }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
                 }
-            }
 
-            LazyVStack(spacing: 0) {
-                ForEach(viewModel.files) { item in
-                    fileRow(item)
-                    if item.id != viewModel.files.last?.id {
-                        Divider().padding(.leading, 44)
+                Divider()
+
+                LazyVStack(spacing: 0) {
+                    ForEach(viewModel.files) { item in
+                        fileRow(item)
+                        if item.id != viewModel.files.last?.id {
+                            Divider()
+                        }
                     }
                 }
             }
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(
-                        isDragOver ? Color.orange : Color.clear,
-                        style: StrokeStyle(lineWidth: 2, dash: [8])
-                    )
-            )
         }
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(
+                    isDragOver ? Color.orange : Color.clear,
+                    style: StrokeStyle(lineWidth: 2, dash: [8])
+                )
+        )
     }
 
     private func fileRow(_ item: ShredderFileItem) -> some View {
@@ -257,35 +255,33 @@ struct FileShredderView: View {
                 .help("Remove from list")
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
     }
 
     // MARK: - Shredding Progress
 
     private var shreddingProgress: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                ProgressView()
-                    .controlSize(.small)
-                Text(viewModel.progressMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("\(viewModel.shreddedCount)/\(viewModel.totalToShred)")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-            }
+        StyledCard {
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text(viewModel.progressMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(viewModel.shreddedCount)/\(viewModel.totalToShred)")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
 
-            ProgressView(
-                value: Double(viewModel.shreddedCount),
-                total: max(Double(viewModel.totalToShred), 1)
-            )
-            .tint(.orange)
+                ProgressView(
+                    value: Double(viewModel.shreddedCount),
+                    total: max(Double(viewModel.totalToShred), 1)
+                )
+                .tint(.orange)
+            }
         }
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Floating Bar

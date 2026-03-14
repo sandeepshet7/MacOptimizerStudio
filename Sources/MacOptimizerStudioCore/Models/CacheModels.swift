@@ -12,6 +12,13 @@ public enum CacheCategory: String, CaseIterable, Hashable, Sendable, Identifiabl
     case mailAttachments
     case iOSBackups
     case brokenPreferences
+    case jetbrainsData
+    case vsCodeData
+    case communicationApps
+    case gameCaches
+    case aiModels
+    case installerPackages
+    case timeMachineSnapshots
 
     public var id: String { rawValue }
 
@@ -28,6 +35,13 @@ public enum CacheCategory: String, CaseIterable, Hashable, Sendable, Identifiabl
         case .mailAttachments: return "Mail Attachments"
         case .iOSBackups: return "iOS Backups"
         case .brokenPreferences: return "Broken Preferences"
+        case .jetbrainsData: return "JetBrains IDEs"
+        case .vsCodeData: return "VS Code & Cursor"
+        case .communicationApps: return "Communication Apps"
+        case .gameCaches: return "Game Libraries"
+        case .aiModels: return "AI & ML Models"
+        case .installerPackages: return "Installer Packages"
+        case .timeMachineSnapshots: return "Time Machine"
         }
     }
 
@@ -44,6 +58,13 @@ public enum CacheCategory: String, CaseIterable, Hashable, Sendable, Identifiabl
         case .mailAttachments: return "paperclip"
         case .iOSBackups: return "iphone"
         case .brokenPreferences: return "wrench.and.screwdriver"
+        case .jetbrainsData: return "curlybraces"
+        case .vsCodeData: return "chevron.left.forwardslash.chevron.right"
+        case .communicationApps: return "bubble.left.and.bubble.right.fill"
+        case .gameCaches: return "gamecontroller.fill"
+        case .aiModels: return "brain"
+        case .installerPackages: return "arrow.down.doc.fill"
+        case .timeMachineSnapshots: return "clock.arrow.circlepath"
         }
     }
 
@@ -60,29 +81,45 @@ public enum CacheCategory: String, CaseIterable, Hashable, Sendable, Identifiabl
         case .mailAttachments: return "Copies of email attachments stored locally"
         case .iOSBackups: return "Old iPhone/iPad backups"
         case .brokenPreferences: return "Corrupted or orphaned preference files"
+        case .jetbrainsData: return "JetBrains IDE caches (IntelliJ, PyCharm, WebStorm, etc.)"
+        case .vsCodeData: return "VS Code/Cursor editor caches only (not extensions)"
+        case .communicationApps: return "Slack, Discord, Teams, Zoom media caches"
+        case .gameCaches: return "Steam, Epic Games Store cached data"
+        case .aiModels: return "Ollama, Hugging Face, LM Studio, PyTorch model caches"
+        case .installerPackages: return "Old .dmg, .pkg, .app installer files in Downloads"
+        case .timeMachineSnapshots: return "Local Time Machine snapshots and iOS backup data"
         }
     }
 
     public var whatBreaksIfDeleted: String {
         switch self {
-        case .appCaches: return "Apps may load slower temporarily while caches rebuild"
+        case .appCaches: return "Safe items auto-regenerate. Moderate items (Slack, Discord, Claude) may require re-login"
         case .systemLogs: return "Clears diagnostic history; new logs are created automatically"
         case .xcodeData: return "Next Xcode build will be a full rebuild (slower first compile)"
         case .packageManager: return "Next install will re-download packages from the network"
-        case .browserData: return "Websites will load slower; logged-in sessions may be lost"
+        case .browserData: return "Websites will load slower temporarily — logins, passwords, and bookmarks are not affected"
         case .containerData: return "Docker images/containers may need to be re-pulled or rebuilt"
         case .temporaryFiles: return "No impact — these are scratch files from completed operations"
         case .languageFiles: return "Apps will only show your language; re-download app to restore other languages"
         case .mailAttachments: return "Attachments will need to be re-downloaded from the mail server"
         case .iOSBackups: return "Old backups will be permanently lost — cannot be recovered"
         case .brokenPreferences: return "No impact — these preferences are already corrupted and non-functional"
+        case .jetbrainsData: return "IDEs will rebuild indexes on next launch (slower first open)"
+        case .vsCodeData: return "Editor caches rebuild automatically — extensions and settings are not affected"
+        case .communicationApps: return "May require re-login to Slack, Discord, Teams. Chat history stays on server but cached media is lost"
+        case .gameCaches: return "Game files may need to be re-downloaded or re-verified — can be very large"
+        case .aiModels: return "Models will need to be re-downloaded (can be very large, 4-70GB each)"
+        case .installerPackages: return "Installer files will be permanently deleted — re-download from source if needed"
+        case .timeMachineSnapshots: return "Local snapshots will be recreated; backup history on external drive is unaffected"
         }
     }
 
     public var willRegenerate: Bool {
         switch self {
-        case .appCaches, .systemLogs, .xcodeData, .packageManager, .temporaryFiles, .brokenPreferences: return true
-        case .browserData, .containerData, .languageFiles, .mailAttachments, .iOSBackups: return false
+        case .appCaches, .systemLogs, .xcodeData, .packageManager, .temporaryFiles, .brokenPreferences,
+             .jetbrainsData, .vsCodeData, .aiModels, .timeMachineSnapshots: return true
+        case .browserData, .containerData, .languageFiles, .mailAttachments, .iOSBackups,
+             .gameCaches, .installerPackages, .communicationApps: return false
         }
     }
 }

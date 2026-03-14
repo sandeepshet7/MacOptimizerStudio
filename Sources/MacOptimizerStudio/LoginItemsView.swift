@@ -55,28 +55,30 @@ struct LoginItemsView: View {
     // MARK: - Controls
 
     private var controls: some View {
-        HStack(spacing: 10) {
-            Button("Refresh") {
-                Task { await systemHealthViewModel.refresh() }
+        StyledCard {
+            HStack(spacing: 10) {
+                Button("Refresh") {
+                    Task { await systemHealthViewModel.refresh() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+
+                Picker("Source", selection: $selectedSource) {
+                    Text("All").tag(nil as StartupSource?)
+                    Text("User Agents").tag(StartupSource.userAgent as StartupSource?)
+                    Text("Global Agents").tag(StartupSource.globalAgent as StartupSource?)
+                    Text("Global Daemons").tag(StartupSource.globalDaemon as StartupSource?)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 360)
+
+                Spacer()
+
+                TextField("Filter", text: $filter)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 180)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
-
-            Picker("Source", selection: $selectedSource) {
-                Text("All").tag(nil as StartupSource?)
-                Text("User Agents").tag(StartupSource.userAgent as StartupSource?)
-                Text("Global Agents").tag(StartupSource.globalAgent as StartupSource?)
-                Text("Global Daemons").tag(StartupSource.globalDaemon as StartupSource?)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 360)
-
-            Spacer()
-
-            TextField("Filter", text: $filter)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 180)
         }
     }
 
@@ -89,24 +91,11 @@ struct LoginItemsView: View {
         let globalItems = items.filter { $0.source != .userAgent }.count
 
         return LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
-            summaryCard(title: "Total Items", value: "\(items.count)", detail: "Login agents & daemons", tint: .blue)
-            summaryCard(title: "Enabled", value: "\(enabled)", detail: enabled > 20 ? "Consider disabling some" : "Active at startup", tint: enabled > 20 ? .orange : .green)
-            summaryCard(title: "Disabled", value: "\(disabled)", detail: "Won't load at startup", tint: .secondary)
-            summaryCard(title: "User / Global", value: "\(userAgents) / \(globalItems)", detail: "User agents vs system", tint: .purple)
+            StatCard(icon: "list.number", title: "Total Items", value: "\(items.count)", tint: .blue)
+            StatCard(icon: "power", title: "Enabled", value: "\(enabled)", tint: enabled > 20 ? .orange : .green)
+            StatCard(icon: "moon.fill", title: "Disabled", value: "\(disabled)", tint: .secondary)
+            StatCard(icon: "person.2.fill", title: "User / Global", value: "\(userAgents) / \(globalItems)", tint: .purple)
         }
-    }
-
-    private func summaryCard(title: String, value: String, detail: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.headline)
-            Text(detail).font(.caption).foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(tint.opacity(0.15), lineWidth: 1))
     }
 
     // MARK: - Items List
@@ -114,25 +103,26 @@ struct LoginItemsView: View {
     private func itemsList(_ items: [StartupItem]) -> some View {
         let filtered = filteredItems(items)
 
-        return VStack(alignment: .leading, spacing: 10) {
-            Text("Items (\(filtered.count))")
-                .font(.headline)
+        return StyledCard {
+            VStack(alignment: .leading, spacing: 10) {
+                CardSectionHeader(icon: "power", title: "Items (\(filtered.count))", color: .orange)
 
-            if filtered.isEmpty {
-                Text("No items match your filter.")
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 20)
-            } else {
-                VStack(spacing: 0) {
-                    itemHeader
+                if filtered.isEmpty {
+                    Text("No items match your filter.")
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 20)
+                } else {
                     Divider()
-                    ForEach(filtered, id: \.id) { item in
-                        itemRow(item)
+
+                    VStack(spacing: 0) {
+                        itemHeader
                         Divider()
+                        ForEach(filtered, id: \.id) { item in
+                            itemRow(item)
+                            Divider()
+                        }
                     }
                 }
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
         }
     }
@@ -150,9 +140,7 @@ struct LoginItemsView: View {
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.primary.opacity(0.03))
+        .padding(.vertical, 6)
     }
 
     private func itemRow(_ item: StartupItem) -> some View {
@@ -205,8 +193,7 @@ struct LoginItemsView: View {
             }
             .frame(width: 140, alignment: .center)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
     }
 
     // MARK: - Confirm Sheet
@@ -246,25 +233,27 @@ struct LoginItemsView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color.secondary.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "power")
-                    .font(.system(size: 32))
-                    .foregroundStyle(.secondary)
+        StyledCard {
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Color.secondary.opacity(0.08))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "power")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.secondary)
+                }
+                Text("Loading Login Items...")
+                    .font(.headline)
+                Button("Scan Now") {
+                    Task { await systemHealthViewModel.refresh() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
             }
-            Text("Loading Login Items...")
-                .font(.headline)
-            Button("Scan Now") {
-                Task { await systemHealthViewModel.refresh() }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
     }
 
     // MARK: - Helpers

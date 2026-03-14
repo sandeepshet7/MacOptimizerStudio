@@ -1,8 +1,30 @@
+import AppKit
 import MacOptimizerStudioCore
 import SwiftUI
 
+final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Try Bundle.module first (SPM resource bundle)
+        if let iconURL = Bundle.module.url(forResource: "app_icon", withExtension: "png"),
+           let iconImage = NSImage(contentsOf: iconURL) {
+            NSApplication.shared.applicationIconImage = iconImage
+            return
+        }
+        // Fallback: locate resource bundle next to executable
+        let execURL = Bundle.main.bundleURL
+        let bundleName = "MacOptimizerStudio_MacOptimizerStudio.bundle"
+        let bundleURL = execURL.deletingLastPathComponent().appendingPathComponent(bundleName)
+        if let resourceBundle = Bundle(url: bundleURL),
+           let iconURL = resourceBundle.url(forResource: "app_icon", withExtension: "png"),
+           let iconImage = NSImage(contentsOf: iconURL) {
+            NSApplication.shared.applicationIconImage = iconImage
+        }
+    }
+}
+
 @main
 struct MacOptimizerStudioApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var diskViewModel = DiskViewModel()
     @StateObject private var memoryViewModel = MemoryViewModel()
     @StateObject private var cacheViewModel = CacheViewModel()
@@ -23,6 +45,7 @@ struct MacOptimizerStudioApp: App {
     @StateObject private var brokenDownloadsViewModel = BrokenDownloadsViewModel()
     @StateObject private var screenshotOrganizerViewModel = ScreenshotOrganizerViewModel()
     @StateObject private var auditLogViewModel = AuditLogViewModel()
+    @StateObject private var duplicateFinderViewModel = DuplicateFinderViewModel()
     @StateObject private var toastManager = ToastManager()
     @StateObject private var alertManager = AlertManager()
 
@@ -52,6 +75,7 @@ struct MacOptimizerStudioApp: App {
                 .environmentObject(brokenDownloadsViewModel)
                 .environmentObject(screenshotOrganizerViewModel)
                 .environmentObject(auditLogViewModel)
+                .environmentObject(duplicateFinderViewModel)
                 .environmentObject(toastManager)
                 .environmentObject(alertManager)
                 .frame(minWidth: 940, minHeight: 640)
@@ -73,11 +97,34 @@ struct MacOptimizerStudioApp: App {
         }
 
         if #available(macOS 13, *) {
-            MenuBarExtra("MacOptimizer", systemImage: "bolt.shield.fill") {
+            MenuBarExtra {
                 MenuBarView()
                     .environmentObject(memoryViewModel)
                     .environmentObject(systemHealthViewModel)
                     .environmentObject(dockerViewModel)
+            } label: {
+                if let iconURL = Bundle.module.url(forResource: "app_icon", withExtension: "png"),
+                   let nsImage = NSImage(contentsOf: iconURL) {
+                    let resized = { () -> NSImage in
+                        let img = NSImage(size: NSSize(width: 18, height: 18))
+                        img.addRepresentation({
+                            let rep = NSBitmapImageRep(
+                                bitmapDataPlanes: nil, pixelsWide: 18, pixelsHigh: 18,
+                                bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                                isPlanar: false, colorSpaceName: .deviceRGB,
+                                bytesPerRow: 0, bitsPerPixel: 0)!
+                            NSGraphicsContext.saveGraphicsState()
+                            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+                            nsImage.draw(in: NSRect(x: 0, y: 0, width: 18, height: 18))
+                            NSGraphicsContext.restoreGraphicsState()
+                            return rep
+                        }())
+                        return img
+                    }()
+                    Image(nsImage: resized)
+                } else {
+                    Image(systemName: "gauge.medium")
+                }
             }
         }
     }

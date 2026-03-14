@@ -14,6 +14,7 @@ enum AppSection: String, CaseIterable, Hashable {
     case battery
     case cache
     case disk
+    case duplicateFinder
     case docker
     case maintenance
     case storageTools
@@ -38,6 +39,7 @@ enum AppSection: String, CaseIterable, Hashable {
         case .memory: return "Memory"
         case .cache: return "Cache"
         case .disk: return "Disk"
+        case .duplicateFinder: return "Duplicates"
         case .docker: return "Docker"
         case .cpu: return "CPU"
         case .battery: return "Battery"
@@ -66,6 +68,7 @@ enum AppSection: String, CaseIterable, Hashable {
         case .memory: return "memorychip"
         case .cache: return "archivebox"
         case .disk: return "externaldrive"
+        case .duplicateFinder: return "doc.on.doc"
         case .docker: return "shippingbox"
         case .cpu: return "cpu"
         case .battery: return "battery.75percent"
@@ -94,6 +97,7 @@ enum AppSection: String, CaseIterable, Hashable {
         case .memory: return "Usage & pressure"
         case .cache: return "System caches"
         case .disk: return "Scan & cleanup"
+        case .duplicateFinder: return "Find duplicate files"
         case .docker: return "Images & volumes"
         case .cpu: return "Top processes"
         case .battery: return "Health & thermal"
@@ -120,7 +124,7 @@ enum AppSection: String, CaseIterable, Hashable {
         switch self {
         case .home: return .dashboard
         case .memory, .cpu, .battery, .network: return .monitor
-        case .cache, .disk, .docker, .maintenance, .storageTools, .photoJunk, .shredder, .brokenDownloads, .screenshotOrganizer: return .cleanup
+        case .cache, .disk, .duplicateFinder, .docker, .maintenance, .storageTools, .photoJunk, .shredder, .brokenDownloads, .screenshotOrganizer: return .cleanup
         case .loginItems, .privacy, .apps, .updater, .extensions, .diskHealth, .startupTime, .diskBenchmark, .activityLog: return .system
         }
     }

@@ -59,41 +59,43 @@ struct CPUView: View {
     // MARK: - Controls
 
     private var controls: some View {
-        HStack(spacing: 10) {
-            Button("Refresh") {
-                memoryViewModel.refreshNow()
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
+        StyledCard {
+            HStack(spacing: 10) {
+                Button("Refresh") {
+                    memoryViewModel.refreshNow()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
 
-            Button(memoryViewModel.isPaused ? "Resume" : "Pause") {
-                memoryViewModel.togglePaused()
-            }
-            .buttonStyle(.bordered)
+                Button(memoryViewModel.isPaused ? "Resume" : "Pause") {
+                    memoryViewModel.togglePaused()
+                }
+                .buttonStyle(.bordered)
 
-            Picker("Sort", selection: $sortByCPU) {
-                Text("By CPU").tag(true)
-                Text("By Memory").tag(false)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 180)
+                Picker("Sort", selection: $sortByCPU) {
+                    Text("By CPU").tag(true)
+                    Text("By Memory").tag(false)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 180)
 
-            if let capturedAt = memoryViewModel.snapshot?.capturedAt {
-                Text(capturedAt.formatted(date: .omitted, time: .standard))
+                if let capturedAt = memoryViewModel.snapshot?.capturedAt {
+                    Text(capturedAt.formatted(date: .omitted, time: .standard))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                TextField("Filter", text: $processFilter)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 160)
+
+                Text("Refresh: \(memoryPollInterval)s")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tertiary)
             }
-
-            Spacer()
-
-            TextField("Filter", text: $processFilter)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 160)
-
-            Text("Refresh: \(memoryPollInterval)s")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
         }
     }
 
@@ -101,61 +103,36 @@ struct CPUView: View {
 
     private var cpuSummaryCards: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
-            summaryCard(
+            StatCard(
+                icon: "flame.fill",
                 title: "Highest CPU",
                 value: highestCPUValue,
-                detail: highestCPUName,
                 tint: (highestCPUEntry?.cpuPercent ?? 0) > 80 ? .red : .purple
             )
 
-            summaryCard(
+            StatCard(
+                icon: "exclamationmark.triangle.fill",
                 title: "Processes > 50%",
                 value: "\(highCPUCount)",
-                detail: highCPUCount > 0 ? "May slow your Mac" : "All processes normal",
                 tint: highCPUCount > 0 ? .orange : .green
             )
 
             if let hw = systemHealthViewModel.snapshot?.hardware {
-                summaryCard(
+                StatCard(
+                    icon: "cpu",
                     title: "CPU",
                     value: hw.cpuModel,
-                    detail: "\(hw.cpuCoreCount) cores",
                     tint: .blue
                 )
             }
 
-            summaryCard(
+            StatCard(
+                icon: "clock.fill",
                 title: "Uptime",
                 value: systemHealthViewModel.uptimeFormatted,
-                detail: systemHealthViewModel.snapshot?.hardware.hostname ?? "",
                 tint: .secondary
             )
         }
-    }
-
-    private func summaryCard(title: String, value: String, detail: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.headline)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .animation(.easeInOut(duration: 0.4), value: value)
-            Text(detail)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(tint.opacity(0.15), lineWidth: 1)
-        )
     }
 
     // MARK: - Insight Banner
@@ -169,13 +146,17 @@ struct CPUView: View {
             let criticalCount = sorted.filter { ($0.cpuPercent ?? 0) > 80 }.count
             let highCount = sorted.filter { ($0.cpuPercent ?? 0) > 50 }.count
 
+            let isSelfProcess = topName.lowercased().contains("macoptimizer")
+
             if criticalCount > 0 {
                 insightCard(
-                    icon: "exclamationmark.triangle.fill",
-                    color: .red,
-                    title: "\(criticalCount) process\(criticalCount == 1 ? "" : "es") using excessive CPU",
-                    message: "\"\(topName)\" is at \(String(format: "%.0f%%", topCPU)) CPU. This can cause your Mac to feel slow, fans to spin up, and battery to drain faster. Consider quitting it if not needed.",
-                    tip: topName.lowercased().contains("macoptimizer") ? "MacOptimizer Studio uses CPU briefly during scans and refreshes — this is normal and temporary." : "Tip: Use Quit or Force Quit below to stop runaway processes."
+                    icon: isSelfProcess ? "info.circle.fill" : "exclamationmark.triangle.fill",
+                    color: isSelfProcess ? .orange : .red,
+                    title: isSelfProcess ? "MacOptimizer Studio is working" : "\(criticalCount) process\(criticalCount == 1 ? "" : "es") using excessive CPU",
+                    message: isSelfProcess
+                        ? "MacOptimizer Studio is currently scanning your system (\(String(format: "%.0f%%", topCPU)) CPU). This is expected during initial launch, cache scanning, and health checks."
+                        : "\"\(topName)\" is at \(String(format: "%.0f%%", topCPU)) CPU. This can cause your Mac to feel slow, fans to spin up, and battery to drain faster. Consider quitting it if not needed.",
+                    tip: isSelfProcess ? "CPU usage will drop to near zero once scanning completes. No action needed." : "Tip: Use Quit or Force Quit below to stop runaway processes."
                 )
             } else if highCount > 0 {
                 insightCard(
@@ -198,73 +179,71 @@ struct CPUView: View {
     }
 
     private func insightCard(icon: String, color: Color, title: String, message: String, tip: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(color)
-                .frame(width: 24, alignment: .top)
+        StyledCard {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(color)
+                    .frame(width: 24, alignment: .top)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(tip)
-                    .font(.caption2.italic())
-                    .foregroundStyle(.tertiary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(tip)
+                        .font(.caption2.italic())
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(color.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.15), lineWidth: 1))
     }
 
     // MARK: - Process Table
 
     private var processTable: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Processes")
-                .font(.headline)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                CardSectionHeader(icon: "list.bullet.rectangle", title: "Processes", color: .orange)
 
-            if let snapshot = memoryViewModel.snapshot {
-                let sorted = sortedProcesses(snapshot.processes)
-                let filtered = filteredProcesses(sorted)
+                if let snapshot = memoryViewModel.snapshot {
+                    let sorted = sortedProcesses(snapshot.processes)
+                    let filtered = filteredProcesses(sorted)
 
-                if filtered.isEmpty {
-                    Text("No processes match filter.")
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, 20)
-                } else {
-                    VStack(spacing: 0) {
-                        processHeader
-                        Divider()
-                        ForEach(filtered) { entry in
-                            processRow(entry)
+                    if filtered.isEmpty {
+                        Text("No processes match filter.")
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 20)
+                    } else {
+                        VStack(spacing: 0) {
+                            processHeader
                             Divider()
+                            ForEach(filtered) { entry in
+                                processRow(entry)
+                                Divider()
+                            }
+                        }
+                        .background(Color.primary.opacity(0.02))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+
+                    if let result = lastQuitResult {
+                        Divider()
+                        HStack(spacing: 6) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundStyle(.blue)
+                            Text(result)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    .background(.thinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                } else {
+                    Text("Collecting process data...")
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 20)
                 }
-
-                if let result = lastQuitResult {
-                    HStack(spacing: 6) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundStyle(.blue)
-                        Text(result)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(8)
-                }
-            } else {
-                Text("Collecting process data...")
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 20)
             }
         }
     }

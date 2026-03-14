@@ -117,27 +117,29 @@ struct AppManagerView: View {
     // MARK: - Controls
 
     private var controls: some View {
-        HStack(spacing: 10) {
-            Button("Scan Apps") {
-                Task { await appManagerViewModel.scan() }
+        StyledCard {
+            HStack(spacing: 10) {
+                Button("Scan Apps") {
+                    Task { await appManagerViewModel.scan() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                .disabled(appManagerViewModel.isScanning)
+
+                if appManagerViewModel.isScanning {
+                    ProgressView().controlSize(.small)
+                    Text(appManagerViewModel.scanProgress)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                TextField("Search apps", text: $appManagerViewModel.searchQuery)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 200)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
-            .disabled(appManagerViewModel.isScanning)
-
-            if appManagerViewModel.isScanning {
-                ProgressView().controlSize(.small)
-                Text(appManagerViewModel.scanProgress)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            TextField("Search apps", text: $appManagerViewModel.searchQuery)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 200)
         }
     }
 
@@ -145,45 +147,33 @@ struct AppManagerView: View {
 
     private var summaryCards: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
-            summaryCard(title: "Total Apps", value: "\(appManagerViewModel.apps.count)", detail: "Installed applications", tint: .blue)
-            summaryCard(title: "Total Footprint", value: ByteFormatting.string(appManagerViewModel.totalFootprint), detail: "Apps + associated data", tint: .orange)
-            summaryCard(title: "Associated Data", value: ByteFormatting.string(appManagerViewModel.totalAssociatedBytes), detail: "Caches, prefs, support files", tint: .purple)
+            StatCard(icon: "square.stack.3d.up", title: "Total Apps", value: "\(appManagerViewModel.apps.count)", tint: .blue)
+            StatCard(icon: "internaldrive", title: "Total Footprint", value: ByteFormatting.string(appManagerViewModel.totalFootprint), tint: .orange)
+            StatCard(icon: "doc.on.doc", title: "Associated Data", value: ByteFormatting.string(appManagerViewModel.totalAssociatedBytes), tint: .purple)
         }
-    }
-
-    private func summaryCard(title: String, value: String, detail: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.headline).lineLimit(1).minimumScaleFactor(0.8)
-            Text(detail).font(.caption).foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(tint.opacity(0.15), lineWidth: 1))
     }
 
     // MARK: - Apps List
 
     private var appsList: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Applications (\(appManagerViewModel.filteredApps.count))")
-                .font(.headline)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 10) {
+                CardSectionHeader(icon: "square.stack.3d.up", title: "Applications (\(appManagerViewModel.filteredApps.count))", color: .orange)
 
-            VStack(spacing: 0) {
-                appHeader
                 Divider()
-                ForEach(appManagerViewModel.filteredApps) { app in
-                    appRow(app)
-                    if selectedApp?.id == app.id {
-                        appDetail(app)
-                    }
+
+                VStack(spacing: 0) {
+                    appHeader
                     Divider()
+                    ForEach(appManagerViewModel.filteredApps) { app in
+                        appRow(app)
+                        if selectedApp?.id == app.id {
+                            appDetail(app)
+                        }
+                        Divider()
+                    }
                 }
             }
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -198,9 +188,7 @@ struct AppManagerView: View {
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.primary.opacity(0.03))
+        .padding(.vertical, 6)
     }
 
     private func appRow(_ app: InstalledApp) -> some View {
@@ -260,8 +248,7 @@ struct AppManagerView: View {
                 }
                 .frame(width: 140, alignment: .center)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
     }
@@ -315,7 +302,7 @@ struct AppManagerView: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.horizontal, 36)
+        .padding(.horizontal, 20)
         .padding(.vertical, 8)
         .background(Color.primary.opacity(0.02))
     }
@@ -323,42 +310,46 @@ struct AppManagerView: View {
     // MARK: - States
 
     private var scanningState: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-            Text(appManagerViewModel.scanProgress)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            ForEach(0..<5, id: \.self) { _ in
-                SkeletonRow()
+        StyledCard {
+            VStack(spacing: 16) {
+                ProgressView()
+                Text(appManagerViewModel.scanProgress)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                ForEach(0..<5, id: \.self) { _ in
+                    SkeletonRow()
+                }
             }
+            .padding(.vertical, 4)
         }
-        .padding(.vertical, 20)
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color.orange.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "square.stack.3d.up")
-                    .font(.system(size: 32))
-                    .foregroundStyle(.orange)
+        StyledCard {
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.08))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "square.stack.3d.up")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.orange)
+                }
+                Text("App Manager")
+                    .font(.headline)
+                Text("Scan installed applications to see their disk footprint and completely uninstall with all associated files.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 400)
+                Button("Scan Apps") {
+                    Task { await appManagerViewModel.scan() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
             }
-            Text("App Manager")
-                .font(.headline)
-            Text("Scan installed applications to see their disk footprint and completely uninstall with all associated files.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 400)
-            Button("Scan Apps") {
-                Task { await appManagerViewModel.scan() }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
     }
 }

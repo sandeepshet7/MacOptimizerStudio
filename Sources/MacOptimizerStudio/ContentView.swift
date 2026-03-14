@@ -14,6 +14,7 @@ struct ContentView: View {
     @EnvironmentObject private var systemHealthViewModel: SystemHealthViewModel
     @EnvironmentObject private var dockerViewModel: DockerViewModel
     @EnvironmentObject private var auditLogViewModel: AuditLogViewModel
+    @EnvironmentObject private var duplicateFinderViewModel: DuplicateFinderViewModel
     @EnvironmentObject private var toastManager: ToastManager
     @EnvironmentObject private var alertManager: AlertManager
 
@@ -85,20 +86,29 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Logo
             HStack(spacing: 10) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.orange, Color.orange.opacity(0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 32, height: 32)
-                    Image(systemName: "bolt.shield.fill")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.white)
+                Group {
+                    if let iconURL = Bundle.module.url(forResource: "app_icon", withExtension: "png"),
+                       let nsImage = NSImage(contentsOf: iconURL) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.orange, Color.orange.opacity(0.8)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            Image(systemName: "gauge.with.dots.needle.67percent")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(.white)
+                        }
+                    }
                 }
+                .frame(width: 32, height: 32)
                 VStack(alignment: .leading, spacing: 0) {
                     Text("MacOptimizer")
                         .font(.subheadline.weight(.bold))
@@ -139,8 +149,18 @@ struct ContentView: View {
             Divider()
                 .padding(.horizontal, 16)
 
-            // Settings button
+            // Settings button — simulate Cmd+, keystroke
             Button {
+                if let menu = NSApp.mainMenu?.item(withTitle: "MacOptimizer Studio")?.submenu
+                    ?? NSApp.mainMenu?.items.first?.submenu {
+                    for item in menu.items {
+                        if item.keyEquivalent == "," {
+                            menu.performActionForItem(at: menu.index(of: item))
+                            return
+                        }
+                    }
+                }
+                // Fallback
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
             } label: {
                 settingsButtonLabel
@@ -280,6 +300,8 @@ struct ContentView: View {
             CacheCleanupView().sectionTransition()
         case .disk:
             DiskView(scanPreset: $scanPreset).sectionTransition()
+        case .duplicateFinder:
+            DuplicateFinderView().sectionTransition()
         case .docker:
             DockerView().sectionTransition()
         case .cpu:
@@ -346,6 +368,7 @@ struct ContentView: View {
         case .battery: return "4"
         case .cache: return "5"
         case .disk: return "6"
+        case .duplicateFinder: return "0" // shared
         case .docker: return "7"
         case .maintenance: return "8"
         case .storageTools: return "9"
@@ -643,21 +666,30 @@ private struct IntroSheet: View {
                 Spacer().frame(height: 8)
 
                 // App icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.orange, Color.orange.opacity(0.7)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 72, height: 72)
-                        .shadow(color: .orange.opacity(0.3), radius: 12, y: 4)
-                    Image(systemName: "bolt.shield.fill")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.white)
+                Group {
+                    if let iconURL = Bundle.module.url(forResource: "app_icon", withExtension: "png"),
+                       let nsImage = NSImage(contentsOf: iconURL) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.orange, Color.orange.opacity(0.7)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            Image(systemName: "gauge.with.dots.needle.67percent")
+                                .font(.system(size: 36))
+                                .foregroundStyle(.white)
+                        }
+                    }
                 }
+                .frame(width: 72, height: 72)
+                .shadow(color: .orange.opacity(0.3), radius: 12, y: 4)
 
                 VStack(spacing: 8) {
                     Text("Welcome to MacOptimizer Studio")

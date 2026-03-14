@@ -20,13 +20,13 @@ struct MemoryView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 16) {
                 controls
                 summaryRow
                 pressureCard
                 processTable
             }
-            .padding(16)
+            .padding(20)
             .frame(maxWidth: 1180)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
@@ -84,86 +84,68 @@ struct MemoryView: View {
     // MARK: - Controls
 
     private var controls: some View {
-        HStack(spacing: 10) {
-            Button("Refresh") {
-                viewModel.refreshNow()
-            }
-            .buttonStyle(.borderedProminent)
-
-            Button(viewModel.isPaused ? "Resume" : "Pause") {
-                viewModel.togglePaused()
-            }
-            .buttonStyle(.bordered)
-
-            Button {
-                pendingPurge = true
-            } label: {
-                HStack(spacing: 4) {
-                    if isPurging {
-                        ProgressView().controlSize(.mini)
-                    }
-                    Text("Purge RAM")
+        StyledCard {
+            HStack(spacing: 10) {
+                Button("Refresh") {
+                    viewModel.refreshNow()
                 }
-            }
-            .buttonStyle(.bordered)
-            .tint(.purple)
-            .disabled(isPurging)
+                .buttonStyle(.borderedProminent)
 
-            Picker("Top", selection: $viewModel.topCount) {
-                Text("Top 5").tag(5)
-                Text("Top 10").tag(10)
-                Text("Top 20").tag(20)
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 220)
+                Button(viewModel.isPaused ? "Resume" : "Pause") {
+                    viewModel.togglePaused()
+                }
+                .buttonStyle(.bordered)
 
-            if let capturedAt = viewModel.snapshot?.capturedAt {
-                Text("Captured: \(capturedAt.formatted(date: .omitted, time: .standard))")
+                Button {
+                    pendingPurge = true
+                } label: {
+                    HStack(spacing: 4) {
+                        if isPurging {
+                            ProgressView().controlSize(.mini)
+                        }
+                        Text("Purge RAM")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(.purple)
+                .disabled(isPurging)
+
+                Picker("Top", selection: $viewModel.topCount) {
+                    Text("Top 5").tag(5)
+                    Text("Top 10").tag(10)
+                    Text("Top 20").tag(20)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 220)
+
+                if let capturedAt = viewModel.snapshot?.capturedAt {
+                    Text("Captured: \(capturedAt.formatted(date: .omitted, time: .standard))")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                TextField("Filter processes", text: $processFilter)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 180)
+
+                Text("Auto-refresh: \(memoryPollInterval)s")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-
-            Spacer()
-
-            TextField("Filter processes", text: $processFilter)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 180)
-
-            Text("Auto-refresh: \(memoryPollInterval)s")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
         }
     }
 
     // MARK: - Summary
 
     private var summaryRow: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
-            summaryCard(title: "Pressure", value: pressureLabel, detail: "System memory")
-            summaryCard(title: "Tracked processes", value: "\(viewModel.snapshot?.processes.count ?? 0)", detail: "Top RSS list")
-            summaryCard(title: "Highest RSS", value: highestRSSValue, detail: highestRSSName)
-            summaryCard(title: "Highest CPU", value: highestCPUValue, detail: highestCPUName)
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
+            StatCard(icon: "gauge.medium", title: "Pressure", value: pressureLabel, tint: pressureTint)
+            StatCard(icon: "list.bullet", title: "Tracked Processes", value: "\(viewModel.snapshot?.processes.count ?? 0)", tint: .blue)
+            StatCard(icon: "memorychip", title: "Highest RSS", value: highestRSSValue, tint: .orange)
+            StatCard(icon: "cpu", title: "Highest CPU", value: highestCPUValue, tint: .purple)
         }
-    }
-
-    private func summaryCard(title: String, value: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.title2.weight(.semibold))
-                .animation(.easeInOut(duration: 0.4), value: value)
-            Text(detail)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Pressure Gauge
@@ -172,59 +154,61 @@ struct MemoryView: View {
         let pressure = viewModel.snapshot?.systemMemoryPressure ?? .unknown
         let stats = viewModel.snapshot?.memoryStats
 
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("System Memory Pressure")
-                    .font(.headline)
-                Spacer()
-                Text(pressure.rawValue.capitalized)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(color(for: pressure))
-            }
-
-            // Gauge bars — all top-aligned
-            HStack(spacing: 4) {
-                gaugeBar(active: pressure == .normal || pressure == .warning || pressure == .critical, color: .green)
-                gaugeBar(active: pressure == .warning || pressure == .critical, color: .orange)
-                gaugeBar(active: pressure == .critical, color: .red)
-            }
-
-            // Labels under each bar
-            HStack(spacing: 4) {
-                gaugeLabelCell(label: "Normal", color: .green, isCurrent: pressure == .normal)
-                gaugeLabelCell(label: "Warning", color: .orange, isCurrent: pressure == .warning)
-                gaugeLabelCell(label: "Critical", color: .red, isCurrent: pressure == .critical)
-            }
-
-            // Current level description
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(color(for: pressure))
-                    .frame(width: 8, height: 8)
-                Text(pressureDescription(pressure))
-                    .font(.caption)
-                    .foregroundStyle(color(for: pressure))
-            }
-            .padding(.horizontal, 4)
-
-            if let stats {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], spacing: 8) {
-                    memStat(label: "Used", value: ByteFormatting.memoryString(stats.usedBytes), tint: stats.usedBytes > stats.totalBytes * 85 / 100 ? .red : .primary)
-                    memStat(label: "App Memory", value: ByteFormatting.memoryString(stats.appBytes), tint: .primary)
-                    memStat(label: "Wired", value: ByteFormatting.memoryString(stats.wiredBytes), tint: .primary)
-                    memStat(label: "Compressed", value: ByteFormatting.memoryString(stats.compressedBytes), tint: stats.compressedBytes > 2 * 1024 * 1024 * 1024 ? .orange : .primary)
-                    memStat(label: "Free", value: ByteFormatting.memoryString(stats.freeBytes), tint: .green)
-                    memStat(label: "Swap Used", value: ByteFormatting.memoryString(stats.swapUsedBytes), tint: stats.swapUsedBytes > 0 ? .orange : .primary)
+        return StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    CardSectionHeader(icon: "gauge.with.dots.needle.33percent", title: "System Memory Pressure", color: color(for: pressure))
+                    Spacer()
+                    Text(pressure.rawValue.capitalized)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(color(for: pressure))
                 }
-            }
 
-            Text("Pressure reflects compression + swap demand across all processes, not just top RSS.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Divider()
+
+                // Gauge bars
+                HStack(spacing: 4) {
+                    gaugeBar(active: pressure == .normal || pressure == .warning || pressure == .critical, color: .green)
+                    gaugeBar(active: pressure == .warning || pressure == .critical, color: .orange)
+                    gaugeBar(active: pressure == .critical, color: .red)
+                }
+
+                // Labels under each bar
+                HStack(spacing: 4) {
+                    gaugeLabelCell(label: "Normal", color: .green, isCurrent: pressure == .normal)
+                    gaugeLabelCell(label: "Warning", color: .orange, isCurrent: pressure == .warning)
+                    gaugeLabelCell(label: "Critical", color: .red, isCurrent: pressure == .critical)
+                }
+
+                // Current level description
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(color(for: pressure))
+                        .frame(width: 8, height: 8)
+                    Text(pressureDescription(pressure))
+                        .font(.caption)
+                        .foregroundStyle(color(for: pressure))
+                }
+                .padding(.horizontal, 4)
+
+                if let stats {
+                    Divider()
+
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], spacing: 8) {
+                        memStat(label: "Used", value: ByteFormatting.memoryString(stats.usedBytes), tint: stats.usedBytes > stats.totalBytes * 85 / 100 ? .red : .primary)
+                        memStat(label: "App Memory", value: ByteFormatting.memoryString(stats.appBytes), tint: .primary)
+                        memStat(label: "Wired", value: ByteFormatting.memoryString(stats.wiredBytes), tint: .primary)
+                        memStat(label: "Compressed", value: ByteFormatting.memoryString(stats.compressedBytes), tint: stats.compressedBytes > 2 * 1024 * 1024 * 1024 ? .orange : .primary)
+                        memStat(label: "Free", value: ByteFormatting.memoryString(stats.freeBytes), tint: .green)
+                        memStat(label: "Swap Used", value: ByteFormatting.memoryString(stats.swapUsedBytes), tint: stats.swapUsedBytes > 0 ? .orange : .primary)
+                    }
+                }
+
+                Text("Pressure reflects compression + swap demand across all processes, not just top RSS.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(12)
-        .background(panelFill)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func memStat(label: String, value: String, tint: Color) -> some View {
@@ -273,62 +257,68 @@ struct MemoryView: View {
     @State private var expandedGroups: Set<String> = []
 
     private var processTable: some View {
-        GroupBox("Top Processes by RSS") {
-            if let snapshot = viewModel.snapshot {
-                let filtered = filteredProcesses(snapshot.processes)
-                let groups = groupProcesses(filtered)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                CardSectionHeader(icon: "list.bullet.rectangle", title: "Top Processes by RSS", color: .blue)
 
-                if groups.isEmpty {
-                    Text("No processes match filter.")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 24)
-                } else {
-                    VStack(spacing: 0) {
-                        processHeader
-                        Divider()
-                        ForEach(groups, id: \.name) { group in
-                            if group.processes.count == 1 {
-                                processRow(group.processes[0])
-                                Divider()
-                            } else {
-                                groupRow(group)
-                                Divider()
-                                if expandedGroups.contains(group.name) {
-                                    ForEach(group.processes) { entry in
-                                        processRow(entry, indented: true)
-                                        Divider()
+                Divider()
+
+                if let snapshot = viewModel.snapshot {
+                    let filtered = filteredProcesses(snapshot.processes)
+                    let groups = groupProcesses(filtered)
+
+                    if groups.isEmpty {
+                        Text("No processes match filter.")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 24)
+                    } else {
+                        VStack(spacing: 0) {
+                            processHeader
+                            Divider()
+                            ForEach(groups, id: \.name) { group in
+                                if group.processes.count == 1 {
+                                    processRow(group.processes[0])
+                                    Divider()
+                                } else {
+                                    groupRow(group)
+                                    Divider()
+                                    if expandedGroups.contains(group.name) {
+                                        ForEach(group.processes) { entry in
+                                            processRow(entry, indented: true)
+                                            Divider()
+                                        }
                                     }
                                 }
                             }
                         }
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+
+                    if let result = lastQuitResult {
+                        HStack(spacing: 6) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundStyle(.blue)
+                            Text(result)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(8)
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        SkeletonRow()
+                        Divider()
+                        SkeletonRow()
+                        Divider()
+                        SkeletonRow()
+                        Divider()
+                        SkeletonRow()
+                        Divider()
+                        SkeletonRow()
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-
-                if let result = lastQuitResult {
-                    HStack(spacing: 6) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundStyle(.blue)
-                        Text(result)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(8)
-                }
-            } else {
-                VStack(spacing: 0) {
-                    SkeletonRow()
-                    Divider()
-                    SkeletonRow()
-                    Divider()
-                    SkeletonRow()
-                    Divider()
-                    SkeletonRow()
-                    Divider()
-                    SkeletonRow()
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
     }
@@ -581,6 +571,10 @@ struct MemoryView: View {
         viewModel.snapshot?.systemMemoryPressure.rawValue.capitalized ?? "Unknown"
     }
 
+    private var pressureTint: Color {
+        color(for: viewModel.snapshot?.systemMemoryPressure ?? .unknown)
+    }
+
     private var highestRSSValue: String {
         guard let top = viewModel.snapshot?.processes.first else { return "-" }
         return ByteFormatting.string(top.rssBytes)
@@ -603,10 +597,6 @@ struct MemoryView: View {
 
     private var highestCPUName: String {
         highestCPUEntry?.name ?? "No CPU data"
-    }
-
-    private var panelFill: some ShapeStyle {
-        .thinMaterial
     }
 
     private func color(for pressure: MemoryPressureLevel) -> Color {

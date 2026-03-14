@@ -72,40 +72,19 @@ struct CleanupHistoryView: View {
 
     private var summaryCards: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
-            summaryCard(
+            StatCard(
+                icon: "arrow.up.trash.fill",
                 title: "Total Freed",
                 value: formatter.string(fromByteCount: Int64(viewModel.totalBytesFreed)),
-                tint: .green,
-                icon: "arrow.up.trash.fill"
+                tint: .green
             )
-            summaryCard(
+            StatCard(
+                icon: "list.bullet.clipboard",
                 title: "Operations",
                 value: "\(viewModel.records.count)",
-                tint: .blue,
-                icon: "list.bullet.clipboard"
+                tint: .blue
             )
         }
-    }
-
-    private func summaryCard(title: String, value: String, tint: Color, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .foregroundStyle(tint)
-                Text(title)
-                    .font(.caption.weight(.semibold))
-            }
-            Text(value)
-                .font(.title3.weight(.bold))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(tint.opacity(0.15), lineWidth: 1)
-        )
     }
 
     private var historyList: some View {
@@ -116,16 +95,16 @@ struct CleanupHistoryView: View {
                         .font(.headline)
                         .padding(.leading, 4)
 
-                    VStack(spacing: 0) {
-                        ForEach(records) { record in
-                            recordRow(record)
-                            if record.id != records.last?.id {
-                                Divider().padding(.leading, 44)
+                    StyledCard {
+                        VStack(spacing: 0) {
+                            ForEach(records) { record in
+                                recordRow(record)
+                                if record.id != records.last?.id {
+                                    Divider()
+                                }
                             }
                         }
                     }
-                    .background(.thinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
         }
@@ -161,8 +140,7 @@ struct CleanupHistoryView: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 6)
     }
 
     private func iconForCategory(_ category: String) -> String {
@@ -179,28 +157,28 @@ struct CleanupHistoryView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Color.secondary.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.secondary.opacity(0.6))
+        StyledCard {
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.secondary.opacity(0.08))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.secondary.opacity(0.6))
+                }
+                VStack(spacing: 6) {
+                    Text("No Cleanup History")
+                        .font(.title3.weight(.semibold))
+                    Text("Cleanup operations you perform will be recorded here for reference.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 380)
+                }
             }
-            VStack(spacing: 6) {
-                Text("No Cleanup History")
-                    .font(.title3.weight(.semibold))
-                Text("Cleanup operations you perform will be recorded here for reference.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 380)
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

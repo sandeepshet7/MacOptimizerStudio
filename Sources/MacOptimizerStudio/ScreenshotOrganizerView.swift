@@ -78,37 +78,36 @@ struct ScreenshotOrganizerView: View {
     // MARK: - Summary Bar
 
     private func summaryBar(_ result: ScreenshotScanResult) -> some View {
-        HStack(spacing: 20) {
-            summaryItem(
-                label: "Total Screenshots",
-                value: "\(result.files.count)",
-                icon: "camera.viewfinder"
-            )
-            Divider().frame(height: 32)
-            summaryItem(
-                label: "Total Size",
-                value: ByteFormatting.string(result.totalBytes),
-                icon: "internaldrive"
-            )
-            Divider().frame(height: 32)
-            summaryItem(
-                label: "Months",
-                value: "\(result.byMonth.count)",
-                icon: "calendar"
-            )
-            Spacer()
-            Button {
-                showOrganizeConfirm = true
-            } label: {
-                Label("Organize All", systemImage: "folder.badge.gearshape")
+        StyledCard {
+            HStack(spacing: 20) {
+                summaryItem(
+                    label: "Total Screenshots",
+                    value: "\(result.files.count)",
+                    icon: "camera.viewfinder"
+                )
+                Divider().frame(height: 32)
+                summaryItem(
+                    label: "Total Size",
+                    value: ByteFormatting.string(result.totalBytes),
+                    icon: "internaldrive"
+                )
+                Divider().frame(height: 32)
+                summaryItem(
+                    label: "Months",
+                    value: "\(result.byMonth.count)",
+                    icon: "calendar"
+                )
+                Spacer()
+                Button {
+                    showOrganizeConfirm = true
+                } label: {
+                    Label("Organize All", systemImage: "folder.badge.gearshape")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                .disabled(viewModel.destinationURL == nil)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
-            .disabled(viewModel.destinationURL == nil)
         }
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func summaryItem(label: String, value: String, icon: String) -> some View {
@@ -129,34 +128,33 @@ struct ScreenshotOrganizerView: View {
     // MARK: - Destination Picker
 
     private var destinationPicker: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "folder.fill")
-                .foregroundStyle(.orange)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Destination Folder")
-                    .font(.subheadline.weight(.medium))
-                if let url = viewModel.destinationURL {
-                    Text(url.path)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.head)
-                } else {
-                    Text("No folder selected")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+        StyledCard {
+            HStack(spacing: 10) {
+                Image(systemName: "folder.fill")
+                    .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Destination Folder")
+                        .font(.subheadline.weight(.medium))
+                    if let url = viewModel.destinationURL {
+                        Text(url.path)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.head)
+                    } else {
+                        Text("No folder selected")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
+                Spacer()
+                Button("Choose...") {
+                    chooseDestination()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
-            Spacer()
-            Button("Choose...") {
-                chooseDestination()
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
         }
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func chooseDestination() {
@@ -176,21 +174,21 @@ struct ScreenshotOrganizerView: View {
     // MARK: - Folder Preview
 
     private var folderPreview: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Folder Structure Preview")
-                .font(.headline)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 8) {
+                CardSectionHeader(icon: "folder.badge.questionmark", title: "Folder Structure Preview", color: .blue)
 
-            let preview = viewModel.folderPreview
-            if !preview.isEmpty, let dest = viewModel.destinationURL {
-                VStack(alignment: .leading, spacing: 0) {
+                let preview = viewModel.folderPreview
+                if !preview.isEmpty, let dest = viewModel.destinationURL {
+                    Divider()
+
                     HStack(spacing: 6) {
                         Image(systemName: "folder.fill")
                             .foregroundStyle(.orange)
                         Text(dest.lastPathComponent)
                             .font(.subheadline.weight(.medium))
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 4)
 
                     ForEach(Array(preview.enumerated()), id: \.offset) { _, item in
                         HStack(spacing: 6) {
@@ -206,14 +204,9 @@ struct ScreenshotOrganizerView: View {
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
-                        .padding(.leading, 34)
-                        .padding(.trailing, 14)
-                        .padding(.vertical, 4)
+                        .padding(.leading, 20)
                     }
                 }
-                .padding(.vertical, 6)
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
         }
     }
@@ -233,33 +226,34 @@ struct ScreenshotOrganizerView: View {
     private func monthSection(monthKey: String, files: [ScreenshotFile]) -> some View {
         let totalBytes = files.reduce(0 as UInt64) { $0 + $1.sizeBytes }
 
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(displayMonthName(monthKey))
-                    .font(.headline)
-                Text("\(files.count)")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.15))
-                    .foregroundStyle(.orange)
-                    .clipShape(Capsule())
-                Text(ByteFormatting.string(totalBytes))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
+        return StyledCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    CardSectionHeader(icon: "calendar", title: displayMonthName(monthKey), color: .orange)
+                    Text("\(files.count)")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.15))
+                        .foregroundStyle(.orange)
+                        .clipShape(Capsule())
+                    Text(ByteFormatting.string(totalBytes))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
 
-            VStack(spacing: 0) {
-                ForEach(files) { file in
-                    fileRow(file)
-                    if file.id != files.last?.id {
-                        Divider().padding(.leading, 44)
+                Divider()
+
+                VStack(spacing: 0) {
+                    ForEach(files) { file in
+                        fileRow(file)
+                        if file.id != files.last?.id {
+                            Divider()
+                        }
                     }
                 }
             }
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -293,8 +287,7 @@ struct ScreenshotOrganizerView: View {
             .controlSize(.mini)
             .help("Reveal in Finder")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
     }
 
     private func fileIcon(for file: ScreenshotFile) -> some View {
@@ -372,89 +365,89 @@ struct ScreenshotOrganizerView: View {
     // MARK: - States
 
     private var loadingState: some View {
-        VStack(spacing: 12) {
-            ForEach(0..<4, id: \.self) { _ in SkeletonRow() }
+        StyledCard {
+            VStack(spacing: 12) {
+                ForEach(0..<4, id: \.self) { _ in SkeletonRow() }
+            }
         }
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var organizingState: some View {
-        VStack(spacing: 18) {
-            ProgressView()
-                .controlSize(.large)
-            Text("Organizing screenshots...")
-                .font(.title3.weight(.semibold))
-            Text("Moving files into date-based folders.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        StyledCard {
+            VStack(spacing: 18) {
+                ProgressView()
+                    .controlSize(.large)
+                Text("Organizing screenshots...")
+                    .font(.title3.weight(.semibold))
+                Text("Moving files into date-based folders.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var cleanState: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Color.green.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.green.opacity(0.7))
+        StyledCard {
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.08))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.green.opacity(0.7))
+                }
+                VStack(spacing: 6) {
+                    Text("No Screenshots Found")
+                        .font(.title3.weight(.semibold))
+                    Text("No screenshots or screen recordings found on Desktop or Downloads.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 380)
+                }
             }
-            VStack(spacing: 6) {
-                Text("No Screenshots Found")
-                    .font(.title3.weight(.semibold))
-                Text("No screenshots or screen recordings found on Desktop or Downloads.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 380)
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var scanPrompt: some View {
         Button {
             Task { await viewModel.scan() }
         } label: {
-            VStack(spacing: 18) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.08))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.orange.opacity(0.6))
+            StyledCard {
+                VStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.08))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "camera.viewfinder")
+                            .font(.system(size: 44))
+                            .foregroundStyle(.orange.opacity(0.6))
+                    }
+                    VStack(spacing: 6) {
+                        Text("Scan for Screenshots")
+                            .font(.title3.weight(.semibold))
+                        Text("Find screenshots and screen recordings on Desktop and Downloads.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 380)
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.caption.weight(.semibold))
+                        Text("Click to scan")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .foregroundStyle(.orange)
                 }
-                VStack(spacing: 6) {
-                    Text("Scan for Screenshots")
-                        .font(.title3.weight(.semibold))
-                    Text("Find screenshots and screen recordings on Desktop and Downloads.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 380)
-                }
-                HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.caption.weight(.semibold))
-                    Text("Click to scan")
-                        .font(.subheadline.weight(.medium))
-                }
-                .foregroundStyle(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 28)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 44)
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }

@@ -60,25 +60,24 @@ struct DiskHealthView: View {
     // MARK: - Health Status
 
     private func healthStatusCard(_ snapshot: DiskHealthSnapshot) -> some View {
-        HStack(spacing: 16) {
-            statusIcon(for: snapshot.smartStatus)
+        StyledCard {
+            HStack(spacing: 16) {
+                statusIcon(for: snapshot.smartStatus)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("S.M.A.R.T. Status")
-                    .font(.headline)
-                Text(snapshot.smartStatus)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(statusColor(for: snapshot.smartStatus))
-                Text(statusDescription(for: snapshot.smartStatus))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("S.M.A.R.T. Status")
+                        .font(.headline)
+                    Text(snapshot.smartStatus)
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(statusColor(for: snapshot.smartStatus))
+                    Text(statusDescription(for: snapshot.smartStatus))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
             }
-
-            Spacer()
         }
-        .padding(16)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     @ViewBuilder
@@ -123,27 +122,11 @@ struct DiskHealthView: View {
 
     private func diskInfoGrid(_ snapshot: DiskHealthSnapshot) -> some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
-            infoCard(label: "Disk Name", value: snapshot.diskName)
-            infoCard(label: "Model", value: snapshot.diskModel)
-            infoCard(label: "Serial / UUID", value: snapshot.serialNumber)
-            infoCard(label: "Media Type", value: snapshot.mediaType)
+            StatCard(icon: "internaldrive", title: "Disk Name", value: snapshot.diskName, tint: .blue)
+            StatCard(icon: "cpu", title: "Model", value: snapshot.diskModel, tint: .purple)
+            StatCard(icon: "number", title: "Serial / UUID", value: snapshot.serialNumber, tint: .orange)
+            StatCard(icon: "opticaldisc", title: "Media Type", value: snapshot.mediaType, tint: .green)
         }
-    }
-
-    private func infoCard(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.subheadline.weight(.medium))
-                .lineLimit(2)
-                .truncationMode(.middle)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - Metrics
@@ -151,12 +134,20 @@ struct DiskHealthView: View {
     private func metricsSection(_ snapshot: DiskHealthSnapshot) -> some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 12)], spacing: 12) {
             if let hours = snapshot.powerOnHours {
-                metricCard(
-                    title: "Power-On Hours",
-                    value: formatHours(hours),
-                    icon: "clock.fill",
-                    color: hours > 40000 ? .orange : .blue
-                )
+                StyledCard {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock.fill")
+                                .foregroundStyle(hours > 40000 ? .orange : .blue)
+                            Text("Power-On Hours")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text(formatHours(hours))
+                            .font(.title3.weight(.semibold))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
             if let temp = snapshot.temperature {
                 temperatureGauge(temp)
@@ -167,102 +158,87 @@ struct DiskHealthView: View {
         }
     }
 
-    private func metricCard(title: String, value: String, icon: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .foregroundStyle(color)
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Text(value)
-                .font(.title3.weight(.semibold))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
     private func temperatureGauge(_ temp: Double) -> some View {
         let color: Color = temp > 70 ? .red : (temp > 50 ? .orange : .green)
 
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "thermometer.medium")
-                    .foregroundStyle(color)
-                Text("Temperature")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Text(String(format: "%.0f\u{00B0}C", temp))
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(color)
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.primary.opacity(0.1))
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(color)
-                        .frame(width: geo.size.width * min(CGFloat(temp) / 100.0, 1.0))
+        return StyledCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "thermometer.medium")
+                        .foregroundStyle(color)
+                    Text("Temperature")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+                Text(String(format: "%.0f\u{00B0}C", temp))
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(color)
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.primary.opacity(0.1))
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(color)
+                            .frame(width: geo.size.width * min(CGFloat(temp) / 100.0, 1.0))
+                    }
+                }
+                .frame(height: 8)
             }
-            .frame(height: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func wearLevelCard(_ wear: Double) -> some View {
         let remaining = max(100 - wear, 0)
         let color: Color = remaining < 20 ? .red : (remaining < 50 ? .orange : .green)
 
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "internaldrive.fill")
-                    .foregroundStyle(color)
-                Text("Wear Level")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Text(String(format: "%.0f%% remaining", remaining))
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(color)
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.primary.opacity(0.1))
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(color)
-                        .frame(width: geo.size.width * CGFloat(remaining / 100.0))
+        return StyledCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "internaldrive.fill")
+                        .foregroundStyle(color)
+                    Text("Wear Level")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+                Text(String(format: "%.0f%% remaining", remaining))
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(color)
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.primary.opacity(0.1))
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(color)
+                            .frame(width: geo.size.width * CGFloat(remaining / 100.0))
+                    }
+                }
+                .frame(height: 8)
             }
-            .frame(height: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - SMART Attributes Table
 
     private func smartAttributesTable(_ snapshot: DiskHealthSnapshot) -> some View {
-        GroupBox("S.M.A.R.T. Attributes") {
-            LazyVStack(spacing: 0) {
-                attributeHeader
+        StyledCard {
+            VStack(alignment: .leading, spacing: 10) {
+                CardSectionHeader(icon: "list.bullet.rectangle", title: "S.M.A.R.T. Attributes", color: .blue)
+
                 Divider()
-                ForEach(snapshot.attributes) { attr in
-                    attributeRow(attr)
+
+                LazyVStack(spacing: 0) {
+                    attributeHeader
                     Divider()
+                    ForEach(snapshot.attributes) { attr in
+                        attributeRow(attr)
+                        Divider()
+                    }
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
 
@@ -281,9 +257,7 @@ struct DiskHealthView: View {
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.primary.opacity(0.03))
+        .padding(.vertical, 6)
     }
 
     private func attributeRow(_ attr: SmartAttribute) -> some View {
@@ -303,8 +277,7 @@ struct DiskHealthView: View {
                 .frame(width: 80, alignment: .center)
         }
         .font(.subheadline.monospaced())
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
     }
 
     @ViewBuilder
@@ -340,19 +313,18 @@ struct DiskHealthView: View {
     // MARK: - Note
 
     private var smartctlNote: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "info.circle")
-                .foregroundStyle(.blue)
-            Text("Install smartmontools via Homebrew for detailed S.M.A.R.T. data: ")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            + Text("brew install smartmontools")
-                .font(.caption.monospaced())
-                .foregroundColor(.primary)
+        StyledCard {
+            HStack(spacing: 8) {
+                Image(systemName: "info.circle")
+                    .foregroundStyle(.blue)
+                Text("Install smartmontools via Homebrew for detailed S.M.A.R.T. data: ")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                + Text("brew install smartmontools")
+                    .font(.caption.monospaced())
+                    .foregroundColor(.primary)
+            }
         }
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - States
@@ -366,20 +338,20 @@ struct DiskHealthView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "internaldrive.trianglebadge.exclamationmark")
-                .font(.system(size: 40))
-                .foregroundStyle(.secondary)
-            Text("No disk health data available")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            Text("Click Refresh to scan your disk.")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
+        StyledCard {
+            VStack(spacing: 12) {
+                Image(systemName: "internaldrive.trianglebadge.exclamationmark")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.secondary)
+                Text("No disk health data available")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Text("Click Refresh to scan your disk.")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 200)
         }
-        .frame(maxWidth: .infinity, minHeight: 200)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Helpers

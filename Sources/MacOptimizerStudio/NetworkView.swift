@@ -57,84 +57,69 @@ struct NetworkView: View {
 
     private func speedCards(_ snapshot: NetworkSnapshot) -> some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
-            speedCard(
-                title: "Download",
-                arrow: "\u{2193}",
-                speed: viewModel.downloadSpeedFormatted,
-                total: ByteFormatting.string(snapshot.bytesIn),
-                color: .blue
+            networkStatCard(
+                icon: "arrow.down.circle.fill", title: "Download",
+                value: viewModel.downloadSpeedFormatted,
+                subtitle: "Total: \(ByteFormatting.string(snapshot.bytesIn))",
+                tint: .blue
             )
-            speedCard(
-                title: "Upload",
-                arrow: "\u{2191}",
-                speed: viewModel.uploadSpeedFormatted,
-                total: ByteFormatting.string(snapshot.bytesOut),
-                color: .orange
+            networkStatCard(
+                icon: "arrow.up.circle.fill", title: "Upload",
+                value: viewModel.uploadSpeedFormatted,
+                subtitle: "Total: \(ByteFormatting.string(snapshot.bytesOut))",
+                tint: .orange
             )
-            summaryCard(
-                title: "Active Connections",
+            networkStatCard(
+                icon: "link", title: "Active Connections",
                 value: "\(snapshot.activeConnections)",
-                detail: "TCP connections"
+                subtitle: "TCP connections",
+                tint: .green
             )
-            summaryCard(
-                title: "Total Transferred",
+            networkStatCard(
+                icon: "arrow.left.arrow.right.circle.fill", title: "Total Transferred",
                 value: ByteFormatting.string(snapshot.bytesIn + snapshot.bytesOut),
-                detail: "Since interface start"
+                subtitle: "Since interface start",
+                tint: .purple
             )
         }
     }
 
-    private func speedCard(title: String, arrow: String, speed: String, total: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Text(arrow)
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(color)
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+    private func networkStatCard(icon: String, title: String, value: String, subtitle: String, tint: Color) -> some View {
+        StyledCard {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.caption)
+                        .foregroundColor(tint)
+                    Text(title)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Text(value)
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.primary)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
-            Text(speed)
-                .font(.title.weight(.semibold))
-                .animation(.easeInOut(duration: 0.4), value: speed)
-            Text("Total: \(total)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    private func summaryCard(title: String, value: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.title2.weight(.semibold))
-                .animation(.easeInOut(duration: 0.4), value: value)
-            Text(detail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Sparkline
 
     private var sparklineCard: some View {
-        GroupBox("Bandwidth History") {
-            if viewModel.history.count < 2 {
-                Text("Collecting data...")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 100, alignment: .center)
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                CardSectionHeader(icon: "chart.xyaxis.line", title: "Bandwidth History", color: .blue)
+
+                if viewModel.history.count < 2 {
+                    Text("Collecting data...")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 100, alignment: .center)
+                } else {
+                    Divider()
+
                     HStack(spacing: 16) {
                         HStack(spacing: 4) {
                             Circle().fill(.blue).frame(width: 8, height: 8)
@@ -185,7 +170,6 @@ struct NetworkView: View {
                     }
                     .frame(height: 120)
                 }
-                .padding(.vertical, 4)
             }
         }
     }
@@ -193,28 +177,38 @@ struct NetworkView: View {
     // MARK: - Connections
 
     private var connectionsSection: some View {
-        GroupBox("Active Connections (\(viewModel.connections.count))") {
-            if viewModel.connections.isEmpty {
-                Text("No active connections detected.")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 24)
-            } else {
-                LazyVStack(spacing: 0) {
-                    connectionHeader
-                    Divider()
-                    ForEach(viewModel.connections.prefix(100)) { conn in
-                        connectionRow(conn)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                CardSectionHeader(
+                    icon: "network",
+                    title: "Active Connections (\(viewModel.connections.count))",
+                    color: .green
+                )
+
+                Divider()
+
+                if viewModel.connections.isEmpty {
+                    Text("No active connections detected.")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 24)
+                } else {
+                    LazyVStack(spacing: 0) {
+                        connectionHeader
                         Divider()
+                        ForEach(viewModel.connections.prefix(100)) { conn in
+                            connectionRow(conn)
+                            Divider()
+                        }
+                        if viewModel.connections.count > 100 {
+                            Text("\(viewModel.connections.count - 100) more connections not shown")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(8)
+                        }
                     }
-                    if viewModel.connections.count > 100 {
-                        Text("\(viewModel.connections.count - 100) more connections not shown")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(8)
-                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
     }
@@ -279,19 +273,19 @@ struct NetworkView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "network.slash")
-                .font(.system(size: 40))
-                .foregroundStyle(.secondary)
-            Text("No network data available")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            Text("Network monitoring will begin automatically.")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
+        StyledCard {
+            VStack(spacing: 12) {
+                Image(systemName: "network.slash")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.secondary)
+                Text("No network data available")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Text("Network monitoring will begin automatically.")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 200)
         }
-        .frame(maxWidth: .infinity, minHeight: 200)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

@@ -77,78 +77,58 @@ struct UpdaterView: View {
 
     private var summaryCards: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 12)], spacing: 12) {
-            summaryCard(
+            StatCard(
+                icon: "exclamationmark.arrow.circlepath",
                 title: "Outdated",
                 value: "\(updaterViewModel.outdatedCount)",
-                tint: .orange,
-                icon: "exclamationmark.arrow.circlepath"
+                tint: .orange
             )
-            summaryCard(
+            StatCard(
+                icon: "shippingbox.fill",
                 title: "Formulae",
                 value: "\(updaterViewModel.outdatedApps.filter { $0.isHomebrew }.count)",
-                tint: .blue,
-                icon: "shippingbox.fill"
+                tint: .blue
             )
         }
-    }
-
-    private func summaryCard(title: String, value: String, tint: Color, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .foregroundStyle(tint)
-                Text(title)
-                    .font(.caption.weight(.semibold))
-            }
-            Text(value)
-                .font(.title3.weight(.bold))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(tint.opacity(0.15), lineWidth: 1)
-        )
     }
 
     // MARK: - Outdated List
 
     private var outdatedList: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Outdated Packages")
-                    .font(.headline)
-                Text("\(updaterViewModel.outdatedCount)")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.15))
-                    .foregroundStyle(.orange)
-                    .clipShape(Capsule())
-                Spacer()
+        StyledCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    CardSectionHeader(icon: "arrow.down.circle.fill", title: "Outdated Packages", color: .orange)
+                    Text("\(updaterViewModel.outdatedCount)")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.15))
+                        .foregroundStyle(.orange)
+                        .clipShape(Capsule())
+                    Spacer()
 
-                Button {
-                    pendingUpdateAll = true
-                } label: {
-                    Label("Update All", systemImage: "arrow.down.circle.fill")
+                    Button {
+                        pendingUpdateAll = true
+                    } label: {
+                        Label("Update All", systemImage: "arrow.down.circle.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+                    .disabled(updaterViewModel.isUpdating)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
-                .disabled(updaterViewModel.isUpdating)
-            }
 
-            VStack(spacing: 0) {
-                outdatedHeader
                 Divider()
-                ForEach(updaterViewModel.outdatedApps) { app in
-                    outdatedRow(app)
+
+                VStack(spacing: 0) {
+                    outdatedHeader
                     Divider()
+                    ForEach(updaterViewModel.outdatedApps) { app in
+                        outdatedRow(app)
+                        Divider()
+                    }
                 }
             }
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -161,9 +141,7 @@ struct UpdaterView: View {
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.primary.opacity(0.03))
+        .padding(.vertical, 6)
     }
 
     private func outdatedRow(_ app: OutdatedApp) -> some View {
@@ -209,36 +187,35 @@ struct UpdaterView: View {
             .frame(width: 100, alignment: .center)
         }
         .font(.subheadline)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
     }
 
     // MARK: - States
 
     private var brewNotInstalledState: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Color.secondary.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "mug.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.secondary.opacity(0.6))
+        StyledCard {
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.secondary.opacity(0.08))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "mug.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.secondary.opacity(0.6))
+                }
+                VStack(spacing: 6) {
+                    Text("Homebrew Not Installed")
+                        .font(.title3.weight(.semibold))
+                    Text("Install Homebrew to check for outdated packages and manage updates.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 380)
+                }
             }
-            VStack(spacing: 6) {
-                Text("Homebrew Not Installed")
-                    .font(.title3.weight(.semibold))
-                Text("Install Homebrew to check for outdated packages and manage updates.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 380)
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var loadingState: some View {
@@ -248,78 +225,78 @@ struct UpdaterView: View {
                     SkeletonCard(height: 70)
                 }
             }
-            VStack(spacing: 0) {
-                SkeletonRow()
-                Divider()
-                SkeletonRow()
-                Divider()
-                SkeletonRow()
+            StyledCard {
+                VStack(spacing: 0) {
+                    SkeletonRow()
+                    Divider()
+                    SkeletonRow()
+                    Divider()
+                    SkeletonRow()
+                }
             }
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 
     private var upToDateState: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Color.green.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.green.opacity(0.7))
+        StyledCard {
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.08))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.green.opacity(0.7))
+                }
+                VStack(spacing: 6) {
+                    Text("All Up to Date")
+                        .font(.title3.weight(.semibold))
+                    Text("All Homebrew packages are at their latest versions.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 380)
+                }
             }
-            VStack(spacing: 6) {
-                Text("All Up to Date")
-                    .font(.title3.weight(.semibold))
-                Text("All Homebrew packages are at their latest versions.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 380)
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var emptyState: some View {
         Button {
             Task { await updaterViewModel.checkForUpdates() }
         } label: {
-            VStack(spacing: 18) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.08))
-                        .frame(width: 80, height: 80)
-                    Image(systemName: "arrow.down.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.orange.opacity(0.6))
+            StyledCard {
+                VStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.orange.opacity(0.08))
+                            .frame(width: 80, height: 80)
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: 44))
+                            .foregroundStyle(.orange.opacity(0.6))
+                    }
+                    VStack(spacing: 6) {
+                        Text("Check for Updates")
+                            .font(.title3.weight(.semibold))
+                        Text("Scan Homebrew for outdated formulae and casks.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 380)
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption.weight(.semibold))
+                        Text("Click to check")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .foregroundStyle(.orange)
                 }
-                VStack(spacing: 6) {
-                    Text("Check for Updates")
-                        .font(.title3.weight(.semibold))
-                    Text("Scan Homebrew for outdated formulae and casks.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 380)
-                }
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.caption.weight(.semibold))
-                    Text("Click to check")
-                        .font(.subheadline.weight(.medium))
-                }
-                .foregroundStyle(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 28)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 44)
-            .background(.thinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
     }
@@ -327,14 +304,15 @@ struct UpdaterView: View {
     // MARK: - Brew Note
 
     private var brewNote: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "info.circle")
-                .foregroundStyle(.secondary)
-            Text("Only shows apps installed via Homebrew (formulae and casks).")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        StyledCard {
+            HStack(spacing: 8) {
+                Image(systemName: "info.circle")
+                    .foregroundStyle(.secondary)
+                Text("Only shows apps installed via Homebrew (formulae and casks).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(.top, 4)
     }
 
     // MARK: - Update All Sheet

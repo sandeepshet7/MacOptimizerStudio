@@ -5,3 +5,6 @@ DerivedData/
 build/
 rust/macopt-scanner/target/
 .claude/
+.home/
+.swift-cache/
+

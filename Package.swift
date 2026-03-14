@@ -24,7 +24,11 @@ let package = Package(
         .executableTarget(
             name: "MacOptimizerStudio",
             dependencies: ["MacOptimizerStudioCore"],
-            path: "Sources/MacOptimizerStudio"
+            path: "Sources/MacOptimizerStudio",
+            resources: [
+                .process("Assets.xcassets"),
+                .process("Resources")
+            ]
         ),
         .executableTarget(
             name: "MacOptimizerStudioCoreSelfCheck",

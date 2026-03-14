@@ -57,135 +57,137 @@ struct StartupTimeView: View {
     // MARK: - Total Boot Time Card
 
     private func totalBootCard(_ snapshot: StartupTimeSnapshot) -> some View {
-        VStack(spacing: 10) {
-            Text("Total Boot Time")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Text(formatDuration(snapshot.totalBootTime))
-                .font(.system(size: 48, weight: .bold, design: .rounded))
-                .foregroundStyle(bootTimeColor(snapshot.totalBootTime))
-            if let bootDate = snapshot.lastBootDate {
-                Text("Last boot: \(bootDate.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.caption)
+        StyledCard {
+            VStack(spacing: 10) {
+                Text("Total Boot Time")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text(formatDuration(snapshot.totalBootTime))
+                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .foregroundStyle(bootTimeColor(snapshot.totalBootTime))
+                if let bootDate = snapshot.lastBootDate {
+                    Text("Last boot: \(bootDate.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Text("Captured: \(snapshot.capturedAt.formatted(date: .omitted, time: .standard))")
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
             }
-            Text("Captured: \(snapshot.capturedAt.formatted(date: .omitted, time: .standard))")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
         }
-        .frame(maxWidth: .infinity)
-        .padding(20)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Phase Breakdown
 
     private func phaseBreakdown(_ snapshot: StartupTimeSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Boot Phases")
-                .font(.headline)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 10) {
+                CardSectionHeader(icon: "chart.bar.fill", title: "Boot Phases", color: .blue)
 
-            let total = snapshot.totalBootTime
-            let phases: [(String, Double?, Color)] = [
-                ("Firmware", snapshot.firmwareTime, .blue),
-                ("Boot Loader", snapshot.loaderTime, .purple),
-                ("Kernel & Services", snapshot.kernelTime, .orange),
-            ]
+                let total = snapshot.totalBootTime
+                let phases: [(String, Double?, Color)] = [
+                    ("Firmware", snapshot.firmwareTime, .blue),
+                    ("Boot Loader", snapshot.loaderTime, .purple),
+                    ("Kernel & Services", snapshot.kernelTime, .orange),
+                ]
 
-            // Stacked bar
-            GeometryReader { geo in
-                HStack(spacing: 2) {
-                    ForEach(Array(phases.enumerated()), id: \.offset) { _, phase in
-                        let value = phase.1 ?? 0
-                        let fraction = total > 0 ? value / total : 0
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(phase.2)
-                            .frame(width: max(2, geo.size.width * fraction))
+                // Stacked bar
+                GeometryReader { geo in
+                    HStack(spacing: 2) {
+                        ForEach(Array(phases.enumerated()), id: \.offset) { _, phase in
+                            let value = phase.1 ?? 0
+                            let fraction = total > 0 ? value / total : 0
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(phase.2)
+                                .frame(width: max(2, geo.size.width * fraction))
+                        }
                     }
                 }
-            }
-            .frame(height: 20)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+                .frame(height: 20)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
 
-            // Legend
-            ForEach(Array(phases.enumerated()), id: \.offset) { _, phase in
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(phase.2)
-                        .frame(width: 10, height: 10)
-                    Text(phase.0)
-                        .font(.subheadline)
-                    Spacer()
-                    if let seconds = phase.1 {
-                        Text(formatDuration(seconds))
-                            .font(.subheadline.weight(.semibold))
-                            .monospacedDigit()
-                    } else {
-                        Text("N/A")
+                Divider()
+
+                // Legend
+                ForEach(Array(phases.enumerated()), id: \.offset) { _, phase in
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(phase.2)
+                            .frame(width: 10, height: 10)
+                        Text(phase.0)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if let seconds = phase.1 {
+                            Text(formatDuration(seconds))
+                                .font(.subheadline.weight(.semibold))
+                                .monospacedDigit()
+                        } else {
+                            Text("N/A")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
         }
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Contributors
 
     private var contributorsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Startup Contributors")
-                .font(.headline)
+        StyledCard {
+            VStack(alignment: .leading, spacing: 10) {
+                CardSectionHeader(icon: "gearshape.2.fill", title: "Startup Contributors", color: .orange)
 
-            if viewModel.contributors.isEmpty {
-                Text("No startup contributors found.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
-            } else {
-                let maxTime = viewModel.contributors.map(\.timeSeconds).max() ?? 1
+                if viewModel.contributors.isEmpty {
+                    Text("No startup contributors found.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
+                } else {
+                    Divider()
 
-                ForEach(viewModel.contributors) { contributor in
-                    HStack(spacing: 10) {
-                        sourceBadge(contributor.source)
-                        Text(contributor.name)
-                            .font(.subheadline)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Spacer()
-                        if contributor.timeSeconds > 0 {
-                            GeometryReader { geo in
-                                let fraction = maxTime > 0 ? contributor.timeSeconds / maxTime : 0
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(Color.orange)
-                                    .frame(width: max(2, geo.size.width * fraction))
-                                    .frame(maxHeight: .infinity, alignment: .center)
+                    let maxTime = viewModel.contributors.map(\.timeSeconds).max() ?? 1
+
+                    ForEach(viewModel.contributors) { contributor in
+                        HStack(spacing: 10) {
+                            sourceBadge(contributor.source)
+                            Text(contributor.name)
+                                .font(.subheadline)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer()
+                            if contributor.timeSeconds > 0 {
+                                GeometryReader { geo in
+                                    let fraction = maxTime > 0 ? contributor.timeSeconds / maxTime : 0
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(Color.orange)
+                                        .frame(width: max(2, geo.size.width * fraction))
+                                        .frame(maxHeight: .infinity, alignment: .center)
+                                }
+                                .frame(width: 80, height: 8)
+
+                                Text(String(format: "%.1fs", contributor.timeSeconds))
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 50, alignment: .trailing)
+                            } else {
+                                Text("--")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 50, alignment: .trailing)
                             }
-                            .frame(width: 80, height: 8)
-
-                            Text(String(format: "%.1fs", contributor.timeSeconds))
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                                .frame(width: 50, alignment: .trailing)
-                        } else {
-                            Text("--")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .frame(width: 50, alignment: .trailing)
+                        }
+                        .padding(.vertical, 4)
+                        if contributor.id != viewModel.contributors.last?.id {
+                            Divider()
                         }
                     }
-                    .padding(.vertical, 4)
-                    Divider()
                 }
             }
         }
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func sourceBadge(_ source: StartupContributorSource) -> some View {
@@ -218,24 +220,21 @@ struct StartupTimeView: View {
     // MARK: - Tips
 
     private var tipsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "lightbulb.fill")
-                    .foregroundStyle(.yellow)
-                Text("Tips to Speed Up Boot")
-                    .font(.headline)
-            }
-            VStack(alignment: .leading, spacing: 6) {
-                tipRow("Disable unused login items in System Settings > General > Login Items")
-                tipRow("Remove unnecessary Launch Agents from ~/Library/LaunchAgents")
-                tipRow("Keep your startup disk at least 15% free for optimal performance")
-                tipRow("Consider using an SSD or upgrading to a faster drive")
-                tipRow("Reset NVRAM/PRAM if firmware time is unusually high")
+        StyledCard {
+            VStack(alignment: .leading, spacing: 8) {
+                CardSectionHeader(icon: "lightbulb.fill", title: "Tips to Speed Up Boot", color: .yellow)
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    tipRow("Disable unused login items in System Settings > General > Login Items")
+                    tipRow("Remove unnecessary Launch Agents from ~/Library/LaunchAgents")
+                    tipRow("Keep your startup disk at least 15% free for optimal performance")
+                    tipRow("Consider using an SSD or upgrading to a faster drive")
+                    tipRow("Reset NVRAM/PRAM if firmware time is unusually high")
+                }
             }
         }
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func tipRow(_ text: String) -> some View {
@@ -253,19 +252,21 @@ struct StartupTimeView: View {
     // MARK: - Empty & Loading States
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "timer")
-                .font(.system(size: 40))
-                .foregroundStyle(.secondary)
-            Text("No Startup Data")
-                .font(.title3.weight(.semibold))
-            Text("Tap \"Measure\" to analyze your Mac's boot performance.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        StyledCard {
+            VStack(spacing: 12) {
+                Image(systemName: "timer")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.secondary)
+                Text("No Startup Data")
+                    .font(.title3.weight(.semibold))
+                Text("Tap \"Measure\" to analyze your Mac's boot performance.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 44)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
     }
 
     private var loadingState: some View {

@@ -24,6 +24,16 @@ struct HomeView: View {
     @State private var smartScanCleanableBytes: UInt64 = 0
     @State private var smartScanIssueCount = 0
 
+    // Quick Clean state
+    @State private var isQuickScanning = false
+    @State private var quickCleanReady = false
+    @State private var quickCleanResults: [(category: CacheCategory, count: Int, bytes: UInt64)] = []
+    @State private var quickCleanTotalBytes: UInt64 = 0
+    @State private var isQuickCleaning = false
+    @State private var quickCleanDone = false
+    @State private var quickCleanFreedBytes: UInt64 = 0
+    @State private var showQuickCleanConfirm = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -31,7 +41,11 @@ struct HomeView: View {
                 if isSmartScanning || smartScanComplete {
                     smartScanSection
                 }
+                if isQuickScanning || quickCleanReady || quickCleanDone {
+                    quickCleanSection
+                }
                 healthScoreCard
+                diskUsageRing
                 overviewCards
                 if !diskViewModel.roots.isEmpty {
                     diskOverviewCard
@@ -77,16 +91,29 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button {
-                Task { await runSmartScan() }
-            } label: {
-                Label("Smart Scan", systemImage: "bolt.shield.fill")
-                    .font(.headline)
+            HStack(spacing: 10) {
+                Button {
+                    Task { await runQuickClean() }
+                } label: {
+                    Label("Quick Clean", systemImage: "sparkles")
+                        .font(.headline)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+                .controlSize(.large)
+                .disabled(isQuickScanning || isSmartScanning || isQuickCleaning)
+
+                Button {
+                    Task { await runSmartScan() }
+                } label: {
+                    Label("Smart Scan", systemImage: "gauge.with.dots.needle.67percent")
+                        .font(.headline)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+                .controlSize(.large)
+                .disabled(isSmartScanning || isQuickScanning)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.orange)
-            .controlSize(.large)
-            .disabled(isSmartScanning)
         }
     }
 
@@ -252,6 +279,195 @@ struct HomeView: View {
                 Text(label)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    // MARK: - Quick Clean
+
+    private func runQuickClean() async {
+        isQuickScanning = true
+        quickCleanReady = false
+        quickCleanDone = false
+        quickCleanResults = []
+        quickCleanTotalBytes = 0
+        quickCleanFreedBytes = 0
+
+        // Scan caches
+        await cacheViewModel.scan()
+
+        // Select only safe items
+        cacheViewModel.deselectAll()
+        cacheViewModel.selectAllSafe()
+
+        // Build results by category
+        guard let report = cacheViewModel.report else {
+            withAnimation { isQuickScanning = false }
+            return
+        }
+
+        let safeEntries = report.entries.filter { $0.riskLevel == .safe }
+        var categoryMap: [CacheCategory: (count: Int, bytes: UInt64)] = [:]
+        for entry in safeEntries {
+            let existing = categoryMap[entry.category] ?? (count: 0, bytes: 0)
+            categoryMap[entry.category] = (count: existing.count + 1, bytes: existing.bytes + entry.sizeBytes)
+        }
+
+        quickCleanResults = categoryMap
+            .map { (category: $0.key, count: $0.value.count, bytes: $0.value.bytes) }
+            .sorted { $0.bytes > $1.bytes }
+        quickCleanTotalBytes = safeEntries.reduce(0) { $0 + $1.sizeBytes }
+
+        withAnimation {
+            isQuickScanning = false
+            quickCleanReady = true
+        }
+    }
+
+    private func executeQuickClean() async {
+        isQuickCleaning = true
+        let commands = cacheViewModel.cleanupCommands()
+        let totalSize = cacheViewModel.selectedTotalBytes
+
+        for command in commands {
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/bin/bash")
+            task.arguments = ["-c", command]
+            try? task.run()
+            task.waitUntilExit()
+        }
+
+        cacheViewModel.logCleanup(itemCount: cacheViewModel.selectedEntries.count)
+        quickCleanFreedBytes = totalSize
+
+        // Re-scan to update cache data
+        await cacheViewModel.scan()
+
+        withAnimation {
+            isQuickCleaning = false
+            quickCleanReady = false
+            quickCleanDone = true
+        }
+    }
+
+    private var quickCleanSection: some View {
+        StyledCard {
+            VStack(alignment: .leading, spacing: 14) {
+                CardSectionHeader(
+                    icon: "sparkles",
+                    title: isQuickScanning ? "Scanning..." : (quickCleanDone ? "Quick Clean Complete" : "Quick Clean — Safe Items Found"),
+                    color: .green
+                )
+
+                Divider()
+
+                if isQuickScanning {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Scanning for safe-to-clean junk files...")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                } else if quickCleanDone {
+                    // Completion state
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.green)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(ByteFormatting.string(quickCleanFreedBytes)) freed!")
+                                .font(.title3.weight(.semibold))
+                            Text("Your Mac is now cleaner. These caches will rebuild automatically as needed.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } else if quickCleanReady {
+                    // Show what will be cleaned
+                    if quickCleanResults.isEmpty {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle")
+                                .foregroundColor(.green)
+                            Text("Your Mac is already clean! No safe junk files found.")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                        }
+                    } else {
+                        Text("The following safe items will be permanently deleted. They will be regenerated automatically by their applications.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        // Category list
+                        VStack(spacing: 0) {
+                            ForEach(Array(quickCleanResults.enumerated()), id: \.element.category) { index, result in
+                                if index > 0 { Divider().padding(.leading, 28) }
+                                HStack(spacing: 10) {
+                                    Image(systemName: result.category.icon)
+                                        .font(.body)
+                                        .foregroundColor(.orange)
+                                        .frame(width: 20)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(result.category.displayName)
+                                            .font(.body)
+                                        Text("\(result.count) item\(result.count == 1 ? "" : "s")")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Text(ByteFormatting.string(result.bytes))
+                                        .font(.body.weight(.medium))
+                                        .foregroundColor(.primary)
+                                }
+                                .padding(.vertical, 6)
+                            }
+                        }
+
+                        Divider()
+
+                        // Total + buttons
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Total to clean")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(ByteFormatting.string(quickCleanTotalBytes))
+                                    .font(.title3.weight(.bold))
+                                    .foregroundColor(.primary)
+                            }
+                            Spacer()
+                            Button {
+                                openCache()
+                            } label: {
+                                Text("Advanced")
+                                    .font(.body)
+                            }
+                            .buttonStyle(.bordered)
+
+                            Button {
+                                Task { await executeQuickClean() }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    if isQuickCleaning {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    }
+                                    Text(isQuickCleaning ? "Cleaning..." : "Clean Now")
+                                        .font(.body.weight(.medium))
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.green)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isQuickCleaning)
+                        }
+                    }
+                }
             }
         }
     }
@@ -432,6 +648,100 @@ struct HomeView: View {
         if uptime < 3 * 86400 { return 10 }
         if uptime < 7 * 86400 { return 7 }
         return 3
+    }
+
+    // MARK: - Disk Usage Ring Chart
+
+    private var diskUsageRing: some View {
+        StyledCard {
+            HStack(spacing: 24) {
+                if let disk = systemHealthViewModel.snapshot?.diskUsage {
+                    let usagePercent = disk.usagePercent
+                    let progress = usagePercent / 100.0
+                    let ringColor: Color = usagePercent < 60 ? .green : (usagePercent < 85 ? .orange : .red)
+
+                    ZStack {
+                        Circle()
+                            .stroke(Color.primary.opacity(0.08), style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                        Circle()
+                            .trim(from: 0, to: min(max(progress, 0), 1))
+                            .stroke(
+                                AngularGradient(
+                                    colors: [ringColor.opacity(0.6), ringColor],
+                                    center: .center,
+                                    startAngle: .degrees(0),
+                                    endAngle: .degrees(360 * progress)
+                                ),
+                                style: StrokeStyle(lineWidth: 14, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeOut(duration: 0.8), value: progress)
+
+                        VStack(spacing: 2) {
+                            Text(String(format: "%.0f%%", usagePercent))
+                                .font(.system(.title2, design: .rounded).weight(.bold))
+                                .foregroundStyle(ringColor)
+                            Text("used")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(width: 100, height: 100)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "internaldrive")
+                                .font(.title3)
+                                .foregroundStyle(ringColor)
+                            Text("Disk Usage")
+                                .font(.headline)
+                        }
+
+                        Text("Used: \(ByteFormatting.string(disk.usedBytes)) of \(ByteFormatting.string(disk.totalBytes))")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        Text("Free: \(ByteFormatting.string(disk.freeBytes))")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(ringColor)
+
+                        ProportionalBar(value: progress, tint: ringColor, height: 6)
+                            .frame(maxWidth: 300)
+                    }
+
+                    Spacer()
+                } else {
+                    ZStack {
+                        Circle()
+                            .stroke(Color.primary.opacity(0.08), style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                        VStack(spacing: 2) {
+                            Text("--%")
+                                .font(.system(.title2, design: .rounded).weight(.bold))
+                                .foregroundStyle(.secondary)
+                            Text("used")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(width: 100, height: 100)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "internaldrive")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                            Text("Disk Usage")
+                                .font(.headline)
+                        }
+                        Text("Collecting disk information...")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+            }
+        }
+        .staggeredAppear(index: 0)
     }
 
     // MARK: - Overview Cards with Ring Gauges

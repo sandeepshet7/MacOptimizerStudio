@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MacOptimizer Studio — All-in-One Mac Optimizer</title>
-    <meta name="description" content="23+ tools to monitor, clean, and optimize your Mac. Built with SwiftUI + Rust.">
+    <meta name="description" content="30+ tools to monitor, clean, and optimize your Mac. Built with SwiftUI + Rust.">
     <style>
         :root {
             --orange: #F27A1A;
@@ -452,7 +452,7 @@
 
         /* Stats */
         .stats {
-            display: grid; grid-template-columns: repeat(4, 1fr);
+            display: grid; grid-template-columns: repeat(3, 1fr);
             gap: 24px; padding: 80px 0;
         }
         .stat {
@@ -790,10 +790,11 @@
 <nav id="navbar">
     <div class="container">
         <a href="#" class="nav-brand">
-            <div class="nav-icon">&#9889;</div>
+            <img src="logo.png" alt="MacOptimizer Studio" style="width:32px;height:32px;border-radius:8px;margin-right:8px;vertical-align:middle;">
             MacOptimizer Studio
         </a>
         <div class="nav-links">
+            <a href="#quickclean">Quick Clean</a>
             <a href="#features">Features</a>
             <a href="#trust">Safety</a>
             <a href="#tech">Tech</a>
@@ -820,7 +821,7 @@
             <span class="hero-title-line"><span class="word">Your Mac,</span></span>
             <span class="hero-title-line"><span class="word"><span class="gradient-text">optimized.</span></span></span>
         </h1>
-        <p class="hero-desc">23+ native tools to monitor performance, reclaim disk space, and keep your Mac running at its best.</p>
+        <p class="hero-desc">30+ native tools to monitor performance, reclaim disk space, and keep your Mac running at its best. One-click Quick Clean gets you started in seconds.</p>
         <div class="hero-cta">
             <a href="https://github.com/sandeepshet7/MacOptimizerStudio/releases" class="btn btn-primary magnetic">
                 <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.5 7.5l-3 3a.7.7 0 01-1 0l-3-3a.7.7 0 111-1L7 8V3.5a.7.7 0 011.4 0V8l1.5-1.5a.7.7 0 111 1z"/></svg>
@@ -832,7 +833,7 @@
             </a>
         </div>
         <p class="hero-note">
-            <span>macOS 12+</span> &middot; <span>Apple Silicon & Intel</span> &middot; <span>Open Source</span>
+            <span>macOS 12 Monterey+</span> &middot; <span>Intel 2015+ and Apple Silicon M1-M5</span> &middot; <span>Open Source</span>
         </p>
     </div>
 
@@ -846,23 +847,39 @@
 <div class="container">
     <div class="stats">
         <div class="stat reveal-scale">
-            <div class="stat-value" data-count="23" data-suffix="+">0</div>
+            <div class="stat-value" data-count="30" data-suffix="+">0</div>
             <div class="stat-label">Built-in Tools</div>
         </div>
         <div class="stat reveal-scale reveal-delay-1">
-            <div class="stat-value" data-count="15">0</div>
-            <div class="stat-label">Ecosystem Cleanup</div>
+            <div class="stat-value" data-count="18">0</div>
+            <div class="stat-label">Cache Categories</div>
         </div>
         <div class="stat reveal-scale reveal-delay-2">
-            <div class="stat-value" data-count="4">0</div>
+            <div class="stat-value" data-count="5">0</div>
             <div class="stat-label">Real-time Monitors</div>
-        </div>
-        <div class="stat reveal-scale reveal-delay-3">
-            <div class="stat-value" data-count="100" data-suffix="%">0</div>
-            <div class="stat-label">Open Source</div>
         </div>
     </div>
 </div>
+
+<!-- Quick Clean Highlight -->
+<section class="features-section" id="quickclean" style="padding-bottom:0;">
+    <div class="container">
+        <div class="section-header reveal">
+            <div class="section-label">New</div>
+            <h2>Quick Clean</h2>
+            <p>One click. Safe junk cleanup. Instant results.</p>
+        </div>
+        <div class="reveal-scale" style="max-width:720px;margin:0 auto;">
+            <div class="feature-card" style="border-color:rgba(242,122,26,0.3);background:rgba(242,122,26,0.04);padding:40px;text-align:center;">
+                <div class="card-spotlight"></div>
+                <span class="feature-card-icon" style="font-size:48px;">&#9889;</span>
+                <h4 style="font-size:22px;margin-bottom:12px;">One-Click Safe Cleanup</h4>
+                <p style="font-size:15px;max-width:480px;margin:0 auto;">Hit Quick Clean and MacOptimizer Studio instantly clears system caches, log files, browser junk, and temporary data — all verified safe. No prompts, no guessing. Just gigabytes reclaimed in seconds.</p>
+                <span class="feature-tag tag-unique" style="margin-top:16px;">Highlighted Feature</span>
+            </div>
+        </div>
+    </div>
+</section>
 
 <!-- Features -->
 <section class="features-section" id="features">
@@ -870,7 +887,7 @@
         <div class="section-header reveal">
             <div class="section-label">Features</div>
             <h2>Everything your Mac needs</h2>
-            <p>Monitor, clean, and maintain — all from a single native dashboard</p>
+            <p>Monitor, clean, and maintain — all from a single card-based native dashboard</p>
         </div>
 
         <!-- Monitor Group -->
@@ -893,12 +910,12 @@
                     <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#9889;</span>
                     <h4>CPU Monitor</h4>
-                    <p>Track CPU-intensive processes. Quit or force-quit runaway processes instantly.</p>
+                    <p>Track CPU-intensive processes with real-time usage. Quit or force-quit runaway processes instantly.</p>
                 </div>
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#128267;</span>
-                    <h4>Battery Health</h4>
+                    <h4>Battery Monitor</h4>
                     <p>Battery health %, charge cycles, thermal state. Hidden on desktop Macs automatically.</p>
                 </div>
                 <div class="feature-card">
@@ -907,50 +924,69 @@
                     <h4>Network Monitor</h4>
                     <p>Real-time upload/download speeds, active connections, and network interface details.</p>
                 </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#128138;</span>
+                    <h4>Disk Health (S.M.A.R.T.)</h4>
+                    <p>S.M.A.R.T. monitoring for SSD and HDD health. Know before your drive fails.</p>
+                </div>
             </div>
         </div>
 
-        <!-- Cleanup Group -->
+        <!-- Scan & Cleanup Group -->
         <div class="feature-group reveal-right">
             <div class="feature-group-header">
                 <div class="feature-group-icon" style="background:rgba(242,122,26,0.1);">&#128451;</div>
                 <div>
-                    <h3>Deep Cleanup</h3>
+                    <h3>Scan & Cleanup</h3>
                     <p>Reclaim gigabytes of wasted disk space</p>
                 </div>
             </div>
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#9889;</span>
+                    <h4>Quick Clean</h4>
+                    <p>One-click safe junk cleanup. Clears caches, logs, and temp files with zero configuration.</p>
+                    <span class="feature-tag tag-unique">New</span>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#128269;</span>
+                    <h4>Smart Scan</h4>
+                    <p>Full system analysis across all categories — finds every optimization opportunity in one pass.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#128451;</span>
                     <h4>Cache Cleanup</h4>
-                    <p>Scan 11+ cache categories with risk levels — app caches, Xcode, browsers, system logs.</p>
+                    <p>Advanced mode: scan 18 cache categories with risk levels — app caches, Xcode, browsers, system logs, IDEs, editors, and more.</p>
                 </div>
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#128190;</span>
-                    <h4>Disk Scanner</h4>
-                    <p>Blazing-fast Rust engine scans 15 ecosystems — node_modules, .build, __pycache__, .gradle.</p>
+                    <h4>Disk Analysis</h4>
+                    <p>Blazing-fast Rust engine scans your disk. Sortable largest folders, drag-and-drop scan roots.</p>
                     <span class="feature-tag tag-rust">Rust Engine</span>
                 </div>
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#128230;</span>
-                    <h4>Docker Manager</h4>
+                    <h4>Docker Management</h4>
                     <p>Manage images, volumes, containers. Bulk prune. See exactly how much disk Docker uses.</p>
                     <span class="feature-tag tag-unique">Unique Feature</span>
                 </div>
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#128295;</span>
-                    <h4>Maintenance</h4>
+                    <h4>Maintenance Scripts</h4>
                     <p>System scripts — flush DNS, rebuild Spotlight, verify disk, repair permissions.</p>
                 </div>
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#128270;</span>
                     <h4>Storage Tools</h4>
-                    <p>Large file finder and duplicate detection. Find what's eating your SSD.</p>
+                    <p>Space lens visualization, large file finder, and duplicate detection. See what's eating your SSD.</p>
                 </div>
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
@@ -961,7 +997,83 @@
             </div>
         </div>
 
-        <!-- System Group -->
+        <!-- Deep Cleanup Group -->
+        <div class="feature-group reveal-left">
+            <div class="feature-group-header">
+                <div class="feature-group-icon" style="background:rgba(168,85,247,0.1);">&#129529;</div>
+                <div>
+                    <h3>Deep Cleanup</h3>
+                    <p>Go beyond basic caches — target the real space hogs</p>
+                </div>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#128270;</span>
+                    <h4>Duplicate File Finder</h4>
+                    <p>SHA256-based duplicate detection. Select scan roots, group duplicates, one-click select all, delete to Trash.</p>
+                    <span class="feature-tag tag-unique">New</span>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#129302;</span>
+                    <h4>AI &amp; ML Model Cleanup</h4>
+                    <p>Scans Ollama (4-70 GB each!), Hugging Face, LM Studio, PyTorch, CoreML, and Whisper model caches.</p>
+                    <span class="feature-tag tag-unique">New</span>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#128230;</span>
+                    <h4>Installer Package Cleanup</h4>
+                    <p>Finds old .dmg and .pkg installer files lingering in Downloads, reclaiming forgotten gigabytes.</p>
+                    <span class="feature-tag tag-unique">New</span>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#128187;</span>
+                    <h4>JetBrains IDE Cleanup</h4>
+                    <p>Clears caches for IntelliJ, PyCharm, WebStorm, GoLand, and CLion — often several GB each.</p>
+                    <span class="feature-tag tag-unique">New</span>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#128221;</span>
+                    <h4>VS Code &amp; Cursor Cleanup</h4>
+                    <p>Targets editor caches for VS Code and Cursor (not extensions) — safe, fast space recovery.</p>
+                    <span class="feature-tag tag-unique">New</span>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#128172;</span>
+                    <h4>Communication App Cleanup</h4>
+                    <p>Clears Slack, Discord, Teams, and Zoom media caches that silently eat your disk.</p>
+                    <span class="feature-tag tag-unique">New</span>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#127918;</span>
+                    <h4>Game Library Cleanup</h4>
+                    <p>Steam and Epic Games Store cached data cleanup. Reclaim space from download caches and shader caches.</p>
+                    <span class="feature-tag tag-unique">New</span>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#9200;</span>
+                    <h4>Time Machine Snapshots</h4>
+                    <p>Find and remove local Time Machine snapshots that can consume tens of GB on your internal drive.</p>
+                    <span class="feature-tag tag-unique">New</span>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#128421;</span>
+                    <h4>Virtual Machine Cleanup</h4>
+                    <p>Targets Parallels, VMware Fusion, UTM, and VirtualBuddy caches and temporary VM data.</p>
+                    <span class="feature-tag tag-unique">New</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- System & Privacy Group -->
         <div class="feature-group reveal-left">
             <div class="feature-group-header">
                 <div class="feature-group-icon" style="background:rgba(34,197,94,0.1);">&#128736;</div>
@@ -974,38 +1086,50 @@
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#128274;</span>
-                    <h4>Privacy Cleanup</h4>
+                    <h4>Privacy Scanner</h4>
                     <p>Clear browser caches, cookies, history. Scan app permissions for camera, mic, location.</p>
                 </div>
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#128230;</span>
-                    <h4>App Uninstaller</h4>
-                    <p>Full app removal with hidden support files. See real sizes including associated data.</p>
+                    <h4>App Manager</h4>
+                    <p>Full app uninstaller with hidden support file detection. See real sizes including associated data.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#128248;</span>
+                    <h4>Screenshot Organizer</h4>
+                    <p>Automatically find, sort, and clean up screenshots cluttering your Desktop and Downloads.</p>
                 </div>
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#128736;</span>
-                    <h4>Login Items & Extensions</h4>
-                    <p>Manage startup items and system extensions — Safari, QuickLook, input methods.</p>
+                    <h4>Login Items Manager</h4>
+                    <p>Control which apps launch at startup. Speed up boot time by disabling unnecessary login items.</p>
                 </div>
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
-                    <span class="feature-card-icon">&#128138;</span>
-                    <h4>Disk Health & Benchmark</h4>
-                    <p>S.M.A.R.T. monitoring, read/write speed tests, boot time analysis.</p>
+                    <span class="feature-card-icon">&#128268;</span>
+                    <h4>Extension Manager</h4>
+                    <p>Manage system extensions — Safari, QuickLook, Finder, input methods, and more.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#9201;</span>
+                    <h4>Startup Time Analysis</h4>
+                    <p>Measure and analyze boot time. Identify what slows down your Mac's startup sequence.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="card-spotlight"></div>
+                    <span class="feature-card-icon">&#128200;</span>
+                    <h4>Disk Benchmark</h4>
+                    <p>Sequential and random read/write speed tests. Know your SSD's real-world performance.</p>
                 </div>
                 <div class="feature-card">
                     <div class="card-spotlight"></div>
                     <span class="feature-card-icon">&#128221;</span>
-                    <h4>Activity Log</h4>
-                    <p>Full audit trail — timestamps, paths, bytes freed. Exportable for debugging.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="card-spotlight"></div>
-                    <span class="feature-card-icon">&#128027;</span>
-                    <h4>Built-in Bug Report</h4>
-                    <p>One-click diagnostic report with system info, errors, and activity log.</p>
+                    <h4>Audit Log</h4>
+                    <p>Full audit trail — timestamps, paths, bytes freed. Exportable for debugging and accountability.</p>
                 </div>
             </div>
         </div>
@@ -1047,20 +1171,26 @@
             <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>SwiftUI</strong> Native UI</div>
             <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>Rust</strong> Disk Scanner</div>
             <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>Swift 6.0</strong> Strict Concurrency</div>
-            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>macOS 12+</strong> Monterey+</div>
-            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>Universal</strong> ARM + Intel</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>macOS 12+</strong> Monterey &amp; later</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>Universal</strong> Intel 2015+ &amp; Apple Silicon M1-M5</div>
             <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>Open Source</strong> MIT License</div>
             <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>No Telemetry</strong> Zero Data Collection</div>
-            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>23+ Tools</strong> All-in-One</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>30+ Tools</strong> All-in-One</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>18 Categories</strong> Cache Cleanup</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>AI/ML</strong> Model Cleanup</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>SHA256</strong> Duplicate Finder</div>
             <!-- duplicate for seamless loop -->
             <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>SwiftUI</strong> Native UI</div>
             <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>Rust</strong> Disk Scanner</div>
             <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>Swift 6.0</strong> Strict Concurrency</div>
-            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>macOS 12+</strong> Monterey+</div>
-            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>Universal</strong> ARM + Intel</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>macOS 12+</strong> Monterey &amp; later</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>Universal</strong> Intel 2015+ &amp; Apple Silicon M1-M5</div>
             <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>Open Source</strong> MIT License</div>
             <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>No Telemetry</strong> Zero Data Collection</div>
-            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>23+ Tools</strong> All-in-One</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>30+ Tools</strong> All-in-One</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>18 Categories</strong> Cache Cleanup</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>AI/ML</strong> Model Cleanup</div>
+            <div class="marquee-item"><span style="color:var(--orange);">&#9679;</span> <strong>SHA256</strong> Duplicate Finder</div>
         </div>
     </div>
 </section>
