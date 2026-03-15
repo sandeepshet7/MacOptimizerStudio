@@ -19,7 +19,7 @@ public final class NetworkViewModel: ObservableObject {
         self.service = service
     }
 
-    public func startPolling(interval: TimeInterval = 2.0) {
+    public func startPolling(interval: TimeInterval = 10.0) {
         guard timer == nil else { return }
         refresh()
 

@@ -90,14 +90,14 @@ private struct GeneralSettingsTab: View {
     @AppStorage("default_scan_preset") private var defaultScanPreset: String = ScanPreset.balanced.rawValue
     @AppStorage("auto_scan_on_launch") private var autoScanOnLaunch: Bool = false
     @AppStorage("confirm_before_cleanup") private var confirmBeforeCleanup: Bool = true
-    @AppStorage("memory_poll_interval") private var memoryPollInterval: Int = 3
+    @AppStorage("memory_poll_interval") private var memoryPollInterval: Int = 10
     @AppStorage("alert_memory_critical") private var alertMemoryCritical = true
     @AppStorage("alert_cpu_high") private var alertCPUHigh = true
     @AppStorage("alert_disk_full") private var alertDiskFull = true
     @AppStorage("color_scheme_override") private var colorSchemeOverride: String = "system"
     @AppStorage("battery_refresh_interval") private var batteryRefreshInterval: Int = 0
 
-    private let pollIntervals: [Int] = [1, 3, 5, 10]
+    private let pollIntervals: [Int] = [5, 10, 15, 30]
     private let batteryIntervals: [(label: String, value: Int)] = [
         ("Off", 0), ("10s", 10), ("30s", 30), ("60s", 60),
     ]

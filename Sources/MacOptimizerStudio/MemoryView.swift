@@ -16,7 +16,7 @@ struct MemoryView: View {
     private let executor = SafeExecutor()
     private let auditLog = AuditLogService()
 
-    @AppStorage("memory_poll_interval") private var memoryPollInterval = 3
+    @AppStorage("memory_poll_interval") private var memoryPollInterval = 10
 
     var body: some View {
         ScrollView {
@@ -130,9 +130,9 @@ struct MemoryView: View {
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 180)
 
-                Text("Auto-refresh: \(memoryPollInterval)s")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Text("Refreshes every \(memoryPollInterval)s")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
         }
     }

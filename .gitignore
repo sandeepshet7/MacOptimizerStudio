@@ -1,10 +1,11 @@
 .build/
 .swiftpm/
+.swift-cache/
+.home/
 DerivedData/
 .DS_Store
 build/
 rust/macopt-scanner/target/
 .claude/
-.home/
-.swift-cache/
-
+github-upload/
+MacOptimizerStudio_github_upload_*.zip

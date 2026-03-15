@@ -25,7 +25,7 @@ struct NetworkView: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
-            viewModel.startPolling(interval: 2.0)
+            viewModel.startPolling(interval: 10.0)
         }
         .onDisappear {
             viewModel.stopPolling()
@@ -40,7 +40,7 @@ struct NetworkView: View {
                 Text("Network Monitor")
                     .font(.title.weight(.semibold))
                 if let snapshot = viewModel.snapshot {
-                    Text("Last updated: \(snapshot.capturedAt.formatted(date: .omitted, time: .standard))")
+                    Text("Last updated: \(snapshot.capturedAt.formatted(date: .omitted, time: .standard)) · Auto-refreshes every 10s")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

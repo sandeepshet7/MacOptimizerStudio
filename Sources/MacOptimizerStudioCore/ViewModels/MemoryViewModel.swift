@@ -18,7 +18,7 @@ public final class MemoryViewModel: ObservableObject {
         self.service = service
     }
 
-    public func startPolling(interval: TimeInterval = 3.0) {
+    public func startPolling(interval: TimeInterval = 10.0) {
         guard timer == nil else { return }
         refreshNow()
 
@@ -43,7 +43,7 @@ public final class MemoryViewModel: ObservableObject {
         let svc = service
         let top = topCount
         Task {
-            let newSnapshot = await Task.detached(priority: .userInitiated) {
+            let newSnapshot = await Task.detached(priority: .utility) {
                 svc.captureSnapshot(topCount: top)
             }.value
             previousSnapshot = snapshot

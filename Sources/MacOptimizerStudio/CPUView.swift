@@ -11,7 +11,7 @@ struct CPUView: View {
     @State private var processFilter = ""
     @State private var sortByCPU = true
 
-    @AppStorage("memory_poll_interval") private var memoryPollInterval = 3
+    @AppStorage("memory_poll_interval") private var memoryPollInterval = 10
 
     private let executor = SafeExecutor()
     private let auditLog = AuditLogService()
@@ -53,6 +53,9 @@ struct CPUView: View {
             Text("Shows which processes are using the most CPU. High CPU usage can cause slowness, fan noise, and battery drain.")
                 .font(.body)
                 .foregroundStyle(.secondary)
+            Text("Auto-refreshes every \(memoryPollInterval)s to keep CPU usage low. Hit Refresh for instant update.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
     }
 
@@ -92,7 +95,7 @@ struct CPUView: View {
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 160)
 
-                Text("Refresh: \(memoryPollInterval)s")
+                Text("Refreshes every \(memoryPollInterval)s")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

@@ -118,7 +118,7 @@ struct MenuBarView: View {
         .frame(width: 300)
         .task {
             if memoryViewModel.snapshot == nil {
-                memoryViewModel.startPolling(interval: 5)
+                memoryViewModel.startPolling(interval: 10)
             }
             if systemHealthViewModel.snapshot == nil {
                 await systemHealthViewModel.refresh()

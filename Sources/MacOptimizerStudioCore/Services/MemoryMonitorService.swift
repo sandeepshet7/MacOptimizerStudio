@@ -7,7 +7,10 @@ private extension UInt64 {
     }
 }
 
-public struct MemoryMonitorService {
+public final class MemoryMonitorService: Sendable {
+    // Store previous CPU times for delta-based CPU% calculation
+    private let previousCPUTimes = ManagedAtomic<[pid_t: (user: UInt64, system: UInt64, timestamp: UInt64)]>()
+
     public init() {}
 
     public func captureSnapshot(topCount: Int = 20) -> MemorySnapshot {
@@ -24,7 +27,13 @@ public struct MemoryMonitorService {
             return []
         }
 
-        let cpuPercentByPid = cpuPercentagesByPid()
+        let now = mach_absolute_time()
+        var newCPUTimes: [pid_t: (user: UInt64, system: UInt64, timestamp: UInt64)] = [:]
+        let prevTimes = previousCPUTimes.load() ?? [:]
+
+        // Get timebase info for converting mach_absolute_time to nanoseconds
+        var timebaseInfo = mach_timebase_info_data_t()
+        mach_timebase_info(&timebaseInfo)
 
         var entries: [ProcessMemoryEntry] = []
         entries.reserveCapacity(min(Int(count), limit * 4))
@@ -44,65 +53,38 @@ public struct MemoryMonitorService {
                 continue
             }
 
+            let userTime = taskInfo.pti_total_user
+            let systemTime = taskInfo.pti_total_system
+
+            // Calculate CPU% from delta if we have a previous sample
+            var cpuPercent: Double? = nil
+            if let prev = prevTimes[pid] {
+                let deltaUser = userTime.saturatingSubtract(prev.user)
+                let deltaSystem = systemTime.saturatingSubtract(prev.system)
+                let deltaCPUNs = deltaUser + deltaSystem // already in nanoseconds from Mach
+                let deltaWallNs = (now - prev.timestamp) * UInt64(timebaseInfo.numer) / UInt64(timebaseInfo.denom)
+                if deltaWallNs > 0 {
+                    cpuPercent = Double(deltaCPUNs) / Double(deltaWallNs) * 100.0
+                }
+            }
+
+            newCPUTimes[pid] = (user: userTime, system: systemTime, timestamp: now)
+
             let name = processName(pid: pid)
             let entry = ProcessMemoryEntry(
                 pid: pid,
                 name: name,
                 rssBytes: UInt64(taskInfo.pti_resident_size),
                 compressedBytes: nil,
-                cpuPercent: cpuPercentByPid[pid]
+                cpuPercent: cpuPercent
             )
             entries.append(entry)
         }
 
+        previousCPUTimes.store(newCPUTimes)
+
         entries.sort { $0.rssBytes > $1.rssBytes }
         return Array(entries.prefix(limit))
-    }
-
-    private func cpuPercentagesByPid() -> [pid_t: Double] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/ps")
-        process.arguments = ["-axo", "pid=,pcpu="]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return [:]
-        }
-
-        guard process.terminationStatus == 0 else {
-            return [:]
-        }
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        guard let output = String(data: data, encoding: .utf8) else {
-            return [:]
-        }
-
-        var mapping: [pid_t: Double] = [:]
-
-        for line in output.split(separator: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.isEmpty {
-                continue
-            }
-
-            let fields = trimmed.split(whereSeparator: { $0 == " " || $0 == "\t" })
-            guard fields.count >= 2,
-                  let pid = Int32(fields[0]),
-                  let cpu = Double(fields[1]) else {
-                continue
-            }
-
-            mapping[pid] = cpu
-        }
-
-        return mapping
     }
 
     private func processName(pid: pid_t) -> String {
@@ -191,5 +173,27 @@ public struct MemoryMonitorService {
     private func decodeCStringBuffer(_ buffer: [CChar]) -> String {
         let utf8 = buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }
         return String(decoding: utf8, as: UTF8.self)
+    }
+}
+
+// Simple thread-safe wrapper for the CPU times dictionary
+private final class ManagedAtomic<T>: @unchecked Sendable {
+    private var value: T?
+    private let lock = NSLock()
+
+    init() {
+        self.value = nil
+    }
+
+    func load() -> T? {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+
+    func store(_ newValue: T) {
+        lock.lock()
+        defer { lock.unlock() }
+        value = newValue
     }
 }
