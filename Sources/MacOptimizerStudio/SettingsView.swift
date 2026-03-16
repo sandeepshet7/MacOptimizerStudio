@@ -418,7 +418,7 @@ private struct AboutSettingsTab: View {
                     VStack(spacing: 14) {
                         // App icon + name
                         Group {
-                            if let iconURL = Bundle.module.url(forResource: "app_icon", withExtension: "png"),
+                            if let iconURL = ResourceBundle.bundle?.url(forResource: "app_icon", withExtension: "png"),
                                let nsImage = NSImage(contentsOf: iconURL) {
                                 Image(nsImage: nsImage)
                                     .resizable()

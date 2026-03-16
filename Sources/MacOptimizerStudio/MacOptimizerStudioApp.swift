@@ -4,18 +4,8 @@ import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
     func applicationWillFinishLaunching(_ notification: Notification) {
-        // Try Bundle.module first (SPM resource bundle)
-        if let iconURL = Bundle.module.url(forResource: "app_icon", withExtension: "png"),
-           let iconImage = NSImage(contentsOf: iconURL) {
-            NSApplication.shared.applicationIconImage = iconImage
-            return
-        }
-        // Fallback: locate resource bundle next to executable
-        let execURL = Bundle.main.bundleURL
-        let bundleName = "MacOptimizerStudio_MacOptimizerStudio.bundle"
-        let bundleURL = execURL.deletingLastPathComponent().appendingPathComponent(bundleName)
-        if let resourceBundle = Bundle(url: bundleURL),
-           let iconURL = resourceBundle.url(forResource: "app_icon", withExtension: "png"),
+        if let bundle = ResourceBundle.bundle,
+           let iconURL = bundle.url(forResource: "app_icon", withExtension: "png"),
            let iconImage = NSImage(contentsOf: iconURL) {
             NSApplication.shared.applicationIconImage = iconImage
         }
@@ -103,7 +93,7 @@ struct MacOptimizerStudioApp: App {
                     .environmentObject(systemHealthViewModel)
                     .environmentObject(dockerViewModel)
             } label: {
-                if let iconURL = Bundle.module.url(forResource: "app_icon", withExtension: "png"),
+                if let iconURL = ResourceBundle.bundle?.url(forResource: "app_icon", withExtension: "png"),
                    let nsImage = NSImage(contentsOf: iconURL) {
                     let resized = { () -> NSImage in
                         let img = NSImage(size: NSSize(width: 18, height: 18))

@@ -40,6 +40,17 @@ public enum PrivacyCategory: String, CaseIterable, Sendable, Identifiable {
         case .trash: return "Files waiting in the Trash to be permanently deleted"
         }
     }
+
+    public var safetyNote: String {
+        switch self {
+        case .browserCache: return "Only cached images and web pages — your logins, passwords, and bookmarks are safe"
+        case .browserHistory: return "Will clear cookies and local storage — you may be logged out of websites"
+        case .recentFiles: return "Only clears the recent files list — your actual files are not deleted"
+        case .downloads: return "Will permanently delete files from your Downloads folder"
+        case .trash: return "Will permanently delete — files cannot be recovered after this"
+        }
+    }
+
 }
 
 public struct PrivacyItem: Identifiable, Sendable {

@@ -39,10 +39,13 @@ struct NetworkView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Network Monitor")
                     .font(.title.weight(.semibold))
+                Text("Shows your Mac's current internet activity — how fast data is moving, how much has been transferred, and which services are connected.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                 if let snapshot = viewModel.snapshot {
                     Text("Last updated: \(snapshot.capturedAt.formatted(date: .omitted, time: .standard)) · Auto-refreshes every 10s")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
             }
             Spacer()
@@ -58,27 +61,27 @@ struct NetworkView: View {
     private func speedCards(_ snapshot: NetworkSnapshot) -> some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
             networkStatCard(
-                icon: "arrow.down.circle.fill", title: "Download",
+                icon: "arrow.down.circle.fill", title: "Download Speed",
                 value: viewModel.downloadSpeedFormatted,
-                subtitle: "Total: \(ByteFormatting.string(snapshot.bytesIn))",
+                subtitle: "Total received: \(ByteFormatting.string(snapshot.bytesIn))",
                 tint: .blue
             )
             networkStatCard(
-                icon: "arrow.up.circle.fill", title: "Upload",
+                icon: "arrow.up.circle.fill", title: "Upload Speed",
                 value: viewModel.uploadSpeedFormatted,
-                subtitle: "Total: \(ByteFormatting.string(snapshot.bytesOut))",
+                subtitle: "Total sent: \(ByteFormatting.string(snapshot.bytesOut))",
                 tint: .orange
             )
             networkStatCard(
                 icon: "link", title: "Active Connections",
                 value: "\(snapshot.activeConnections)",
-                subtitle: "TCP connections",
+                subtitle: "Apps talking to the internet",
                 tint: .green
             )
             networkStatCard(
                 icon: "arrow.left.arrow.right.circle.fill", title: "Total Transferred",
                 value: ByteFormatting.string(snapshot.bytesIn + snapshot.bytesOut),
-                subtitle: "Since interface start",
+                subtitle: "Since last reboot",
                 tint: .purple
             )
         }
@@ -184,6 +187,10 @@ struct NetworkView: View {
                     title: "Active Connections (\(viewModel.connections.count))",
                     color: .green
                 )
+                Text("Every app that connects to the internet creates a connection. Port 443 = secure HTTPS, port 80 = HTTP. This is normal — browsers, iCloud, Slack, and system services all maintain multiple connections.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.bottom, 4)
 
                 Divider()
 

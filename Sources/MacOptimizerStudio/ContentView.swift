@@ -87,7 +87,7 @@ struct ContentView: View {
             // Logo
             HStack(spacing: 10) {
                 Group {
-                    if let iconURL = Bundle.module.url(forResource: "app_icon", withExtension: "png"),
+                    if let iconURL = ResourceBundle.bundle?.url(forResource: "app_icon", withExtension: "png"),
                        let nsImage = NSImage(contentsOf: iconURL) {
                         Image(nsImage: nsImage)
                             .resizable()
@@ -667,7 +667,7 @@ private struct IntroSheet: View {
 
                 // App icon
                 Group {
-                    if let iconURL = Bundle.module.url(forResource: "app_icon", withExtension: "png"),
+                    if let iconURL = ResourceBundle.bundle?.url(forResource: "app_icon", withExtension: "png"),
                        let nsImage = NSImage(contentsOf: iconURL) {
                         Image(nsImage: nsImage)
                             .resizable()

@@ -206,9 +206,13 @@ struct BrokenDownloadsView: View {
                 showTrashConfirm = true
             } label: {
                 Label("Clean Selected", systemImage: "trash")
+                    .font(.headline)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
             }
             .buttonStyle(.borderedProminent)
             .tint(.red)
+            .controlSize(.large)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)

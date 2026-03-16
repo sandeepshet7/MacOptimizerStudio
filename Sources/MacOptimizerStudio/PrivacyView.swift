@@ -157,6 +157,19 @@ struct PrivacyView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
 
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                    Text(category.safetyNote)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.blue.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
                 Divider()
 
                 VStack(spacing: 0) {
@@ -225,12 +238,17 @@ struct PrivacyView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
 
-            Button("Clean Selected") {
+            Button {
                 pendingCleanup = true
+            } label: {
+                Label("Clean Selected", systemImage: "trash")
+                    .font(.headline)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
             }
             .buttonStyle(.borderedProminent)
             .tint(.red)
-            .controlSize(.small)
+            .controlSize(.large)
         }
         .padding(14)
         .background(.ultraThinMaterial)

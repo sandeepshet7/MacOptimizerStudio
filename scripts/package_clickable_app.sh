@@ -43,7 +43,7 @@ cp "${APP_EXECUTABLE}" "${MACOS_DIR}/${APP_NAME}"
 cp "${SCANNER_PATH}" "${RESOURCES_DIR}/macopt-scanner"
 chmod +x "${MACOS_DIR}/${APP_NAME}" "${RESOURCES_DIR}/macopt-scanner"
 
-# Copy SPM resource bundle into app
+# Copy SPM resource bundle into app (Contents/Resources/)
 RESOURCE_BUNDLE="${SWIFT_BIN_DIR}/${APP_NAME}_${APP_NAME}.bundle"
 if [[ -d "${RESOURCE_BUNDLE}" ]]; then
   cp -R "${RESOURCE_BUNDLE}" "${RESOURCES_DIR}/"

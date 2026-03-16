@@ -176,16 +176,16 @@ public struct SystemCacheService: Sendable {
         var entries: [CacheEntry] = []
 
         let locations: [(String, String, String)] = [
-            ("\(home)/Library/Caches/Google/Chrome", "Chrome Cache", "Google Chrome browser cache — logins and bookmarks are not affected"),
-            ("\(home)/Library/Caches/com.apple.Safari", "Safari Cache", "Safari browser cache — logins and bookmarks are not affected"),
-            ("\(home)/Library/Caches/Firefox", "Firefox Cache", "Firefox browser cache — logins and bookmarks are not affected"),
-            ("\(home)/Library/Caches/com.microsoft.edgemac", "Edge Cache", "Microsoft Edge browser cache — logins and bookmarks are not affected"),
-            ("\(home)/Library/Caches/com.brave.Browser", "Brave Cache", "Brave browser cache — logins and bookmarks are not affected"),
-            ("\(home)/Library/Caches/com.operasoftware.Opera", "Opera Cache", "Opera browser cache — logins and bookmarks are not affected"),
+            ("\(home)/Library/Caches/Google/Chrome", "Chrome Cache", "Cached images & web pages only — your logins, passwords, and bookmarks are safe"),
+            ("\(home)/Library/Caches/com.apple.Safari", "Safari Cache", "Cached images & web pages only — your logins, passwords, and bookmarks are safe"),
+            ("\(home)/Library/Caches/Firefox", "Firefox Cache", "Cached images & web pages only — your logins, passwords, and bookmarks are safe"),
+            ("\(home)/Library/Caches/com.microsoft.edgemac", "Edge Cache", "Cached images & web pages only — your logins, passwords, and bookmarks are safe"),
+            ("\(home)/Library/Caches/com.brave.Browser", "Brave Cache", "Cached images & web pages only — your logins, passwords, and bookmarks are safe"),
+            ("\(home)/Library/Caches/com.operasoftware.Opera", "Opera Cache", "Cached images & web pages only — your logins, passwords, and bookmarks are safe"),
         ]
 
         for (path, name, desc) in locations {
-            if let entry = measureDirectory(at: path, name: name, category: .browserData, risk: .moderate, description: desc) {
+            if let entry = measureDirectory(at: path, name: name, category: .browserData, risk: .safe, description: desc) {
                 entries.append(entry)
             }
         }
@@ -613,9 +613,11 @@ public struct SystemCacheService: Sendable {
         var total: UInt64 = 0
         while let file = enumerator.nextObject() as? String {
             let fullPath = "\(path)/\(file)"
-            if let attrs = try? fm.attributesOfItem(atPath: fullPath),
-               let fileSize = attrs[.size] as? UInt64 {
-                total += fileSize
+            let url = URL(fileURLWithPath: fullPath)
+            // Use totalFileAllocatedSize for actual disk usage (handles sparse files like Docker.raw)
+            if let values = try? url.resourceValues(forKeys: [.totalFileAllocatedSizeKey, .fileSizeKey]) {
+                let size = UInt64(values.totalFileAllocatedSize ?? values.fileSize ?? 0)
+                total += size
             }
         }
         return total

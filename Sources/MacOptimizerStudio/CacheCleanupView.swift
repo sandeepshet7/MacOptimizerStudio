@@ -102,13 +102,16 @@ struct CacheCleanupView: View {
                 executionRequest = cacheViewModel.executionRequest()
             } label: {
                 Label("Clean Selected", systemImage: "trash")
+                    .font(.headline)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
             }
             .buttonStyle(.borderedProminent)
             .tint(.red)
-            .controlSize(.small)
+            .controlSize(.large)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .background(.ultraThinMaterial)
         .overlay(alignment: .top) { Divider() }
     }
@@ -305,18 +308,22 @@ struct CacheCleanupView: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         // Category description and info
-                        VStack(alignment: .leading, spacing: 3) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(category.description)
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
-                            HStack(spacing: 4) {
-                                Image(systemName: "info.circle")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                Text("If deleted: \(category.whatBreaksIfDeleted)")
-                                    .font(.caption2)
+                            HStack(alignment: .top, spacing: 6) {
+                                Image(systemName: "info.circle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.blue)
+                                Text(category.whatBreaksIfDeleted)
+                                    .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
+                            .padding(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.blue.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                             if category.willRegenerate {
                                 HStack(spacing: 4) {
                                     Image(systemName: "arrow.clockwise")

@@ -110,12 +110,16 @@
 
 Download the latest `.dmg` from [Releases](https://github.com/sandeepshet7/MacOptimizerStudio/releases).
 
-Since the app is unsigned, on first launch:
-1. Drag MacOptimizer Studio to Applications
-2. **Right-click → Open** (don't double-click)
-3. Click "Open" on the macOS warning dialog
-4. If blocked: **System Settings → Privacy & Security** → scroll down → click **"Open Anyway"**
-5. You only need to do this once
+> **Note:** This app is not signed with an Apple Developer ID. macOS will show a security warning -- this is expected for open-source apps distributed outside the App Store. The full source code is available on this repo for verification.
+
+**First launch (one-time setup):**
+
+1. Open the `.dmg` and drag MacOptimizer Studio to **Applications**
+2. Try to open the app -- macOS will block it with a warning
+3. Go to **System Settings → Privacy & Security**
+4. Scroll down -- you'll see *"MacOptimizerStudio was blocked from use because it is not from an identified developer"*
+5. Click **"Open Anyway"** → enter your password → click **"Open"**
+6. You only need to do this once -- the app opens normally after that
 
 ### Build from Source
 
