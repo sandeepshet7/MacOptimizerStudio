@@ -13,21 +13,25 @@ struct MemoryView: View {
     @State private var isPurging = false
     @State private var pendingPurge = false
 
-    private let executor = SafeExecutor()
-    private let auditLog = AuditLogService()
-
-    @AppStorage("memory_poll_interval") private var memoryPollInterval = 10
+    @AppStorage(StorageKeys.memoryPollInterval) private var memoryPollInterval = 10
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: DesignTokens.sectionSpacing) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Memory")
+                        .font(.largeTitle.weight(.bold))
+                    Text("Live memory pressure, per-process RAM usage, and memory purge.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
                 controls
                 summaryRow
                 pressureCard
                 processTable
             }
-            .padding(20)
-            .frame(maxWidth: 1180)
+            .padding(DesignTokens.contentPadding)
+            .frame(maxWidth: DesignTokens.contentMaxWidth)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .onAppear {
@@ -43,12 +47,13 @@ struct MemoryView: View {
         .onChange(of: viewModel.topCount) { _ in
             viewModel.refreshNow()
         }
-        .sheet(item: $pendingQuitProcess) { process in
-            quitConfirmSheet(process: process, isForce: false)
-        }
-        .sheet(item: $pendingForceQuitProcess) { process in
-            quitConfirmSheet(process: process, isForce: true)
-        }
+        .processQuitSheets(
+            pendingQuitProcess: $pendingQuitProcess,
+            pendingForceQuitProcess: $pendingForceQuitProcess,
+            lastQuitResult: $lastQuitResult,
+            detailStyle: .memory,
+            onProcessQuit: { viewModel.refreshNow() }
+        )
         .sheet(isPresented: $pendingPurge) {
             DoubleConfirmSheet(
                 title: "Purge Inactive Memory",
@@ -67,15 +72,28 @@ struct MemoryView: View {
                 onConfirm: {
                     pendingPurge = false
                     isPurging = true
-                    let exec = SafeExecutor()
-                    let result = exec.execute(commands: ["purge"]) { _, _ in }
-                    isPurging = false
-                    if result.success {
-                        toastManager.show("Memory purge completed")
-                    } else {
-                        toastManager.show("Purge failed — may need admin privileges", isError: true)
+                    Task.detached {
+                        let process = Process()
+                        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+                        process.arguments = ["-e", "do shell script \"purge\" with administrator privileges"]
+                        let success: Bool
+                        do {
+                            try process.run()
+                            process.waitUntilExit()
+                            success = process.terminationStatus == 0
+                        } catch {
+                            success = false
+                        }
+                        await MainActor.run {
+                            isPurging = false
+                            if success {
+                                toastManager.show("Memory purge completed")
+                            } else {
+                                toastManager.show("Purge cancelled or failed", isError: true)
+                            }
+                            viewModel.refreshNow()
+                        }
                     }
-                    viewModel.refreshNow()
                 }
             )
         }
@@ -90,6 +108,7 @@ struct MemoryView: View {
                     viewModel.refreshNow()
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(.orange)
 
                 Button(viewModel.isPaused ? "Resume" : "Pause") {
                     viewModel.togglePaused()
@@ -107,7 +126,7 @@ struct MemoryView: View {
                     }
                 }
                 .buttonStyle(.bordered)
-                .tint(.purple)
+                .tint(.orange)
                 .disabled(isPurging)
 
                 Picker("Top", selection: $viewModel.topCount) {
@@ -140,11 +159,11 @@ struct MemoryView: View {
     // MARK: - Summary
 
     private var summaryRow: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: DesignTokens.statCardMinWidth), spacing: DesignTokens.gridSpacing)], spacing: DesignTokens.gridSpacing) {
             StatCard(icon: "gauge.medium", title: "Pressure", value: pressureLabel, tint: pressureTint)
             StatCard(icon: "list.bullet", title: "Tracked Processes", value: "\(viewModel.snapshot?.processes.count ?? 0)", tint: .blue)
             StatCard(icon: "memorychip", title: "Highest RSS", value: highestRSSValue, tint: .orange)
-            StatCard(icon: "cpu", title: "Highest CPU", value: highestCPUValue, tint: .purple)
+            StatCard(icon: "cpu", title: "Highest CPU", value: highestCPUValue, tint: .orange)
         }
     }
 
@@ -273,7 +292,7 @@ struct MemoryView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 24)
                     } else {
-                        VStack(spacing: 0) {
+                        LazyVStack(spacing: 0, pinnedViews: []) {
                             processHeader
                             Divider()
                             ForEach(groups, id: \.name) { group in
@@ -468,50 +487,6 @@ struct MemoryView: View {
         .font(.subheadline)
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-    }
-
-    // MARK: - Quit Confirmation Sheet
-
-    private func quitConfirmSheet(process: ProcessMemoryEntry, isForce: Bool) -> some View {
-        let signalName = isForce ? "SIGKILL (Force Quit)" : "SIGTERM (Quit)"
-        let signal: Int32 = isForce ? 9 : 15
-
-        return DoubleConfirmSheet(
-            title: isForce ? "Force Quit Process" : "Quit Process",
-            warning: isForce
-                ? "FORCE QUIT will terminate the process immediately. Unsaved data WILL be lost."
-                : "The process will be asked to exit gracefully. Unsaved data may be lost.",
-            confirmLabel: isForce ? "Force Quit Now" : "Quit Now",
-            items: [(process.name, "PID: \(process.pid) — RSS: \(ByteFormatting.string(process.rssBytes)) — Signal: \(signalName)")],
-            onCancel: {
-                pendingQuitProcess = nil
-                pendingForceQuitProcess = nil
-            },
-            onConfirm: {
-                let success = executor.sendSignal(signal, toPid: process.pid)
-                let result = success
-                    ? "\(signalName) sent to \(process.name) (PID \(process.pid))"
-                    : "Failed to send signal to PID \(process.pid). Permission denied."
-
-                if success {
-                    let log = auditLog
-                    let entry = AuditLogEntry(
-                        action: isForce ? .processForceKilled : .processKilled,
-                        details: "\(signalName) sent to \(process.name) (PID \(process.pid), RSS: \(ByteFormatting.string(process.rssBytes)))",
-                        paths: [],
-                        totalBytes: nil,
-                        itemCount: 1,
-                        userConfirmed: true
-                    )
-                    Task.detached { log.log(entry) }
-                }
-
-                pendingQuitProcess = nil
-                pendingForceQuitProcess = nil
-                lastQuitResult = result
-                viewModel.refreshNow()
-            }
-        )
     }
 
     // MARK: - Process Grouping

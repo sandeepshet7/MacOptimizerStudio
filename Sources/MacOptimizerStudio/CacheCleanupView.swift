@@ -10,7 +10,7 @@ struct CacheCleanupView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: DesignTokens.sectionSpacing) {
                 header
                 scanBar
 
@@ -24,8 +24,8 @@ struct CacheCleanupView: View {
                     emptyState
                 }
             }
-            .padding(20)
-            .frame(maxWidth: 1200)
+            .padding(DesignTokens.contentPadding)
+            .frame(maxWidth: DesignTokens.contentMaxWidth)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .safeAreaInset(edge: .bottom) {
@@ -107,7 +107,7 @@ struct CacheCleanupView: View {
                     .padding(.vertical, 6)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.red)
+            .tint(.orange)
             .controlSize(.large)
         }
         .padding(.horizontal, 16)
@@ -121,7 +121,7 @@ struct CacheCleanupView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Cache Cleanup")
-                .font(.largeTitle.weight(.semibold))
+                .font(.largeTitle.weight(.bold))
 
             HStack(spacing: 4) {
                 Image(systemName: "exclamationmark.shield.fill")
@@ -144,6 +144,7 @@ struct CacheCleanupView: View {
                         .font(.body.weight(.semibold))
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(.orange)
                 .disabled(cacheViewModel.isScanning)
 
                 if cacheViewModel.isScanning {

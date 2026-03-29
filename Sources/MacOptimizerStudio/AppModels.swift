@@ -1,5 +1,20 @@
 import Foundation
 
+// MARK: - Centralized AppStorage Keys
+
+enum StorageKeys {
+    static let defaultScanPreset = "default_scan_preset"
+    static let autoScanOnLaunch = "auto_scan_on_launch"
+    static let confirmBeforeCleanup = "confirm_before_cleanup"
+    static let memoryPollInterval = "memory_poll_interval"
+    static let colorSchemeOverride = "color_scheme_override"
+    static let hasSeenIntro = "has_seen_intro"
+    static let alertMemoryCritical = "alert_memory_critical"
+    static let alertCPUHigh = "alert_cpu_high"
+    static let alertDiskFull = "alert_disk_full"
+    static let batteryRefreshInterval = "battery_refresh_interval"
+}
+
 enum SidebarGroup: String, CaseIterable {
     case dashboard
     case monitor

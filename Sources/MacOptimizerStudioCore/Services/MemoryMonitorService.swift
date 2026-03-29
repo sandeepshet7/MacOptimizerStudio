@@ -8,6 +8,9 @@ private extension UInt64 {
 }
 
 public final class MemoryMonitorService: Sendable {
+    /// Cache the host Mach port to avoid leaking send rights on every call.
+    nonisolated(unsafe) private static let hostPort: mach_port_t = mach_host_self()
+
     // Store previous CPU times for delta-based CPU% calculation
     private let previousCPUTimes = ManagedAtomic<[pid_t: (user: UInt64, system: UInt64, timestamp: UInt64)]>()
 
@@ -35,8 +38,14 @@ public final class MemoryMonitorService: Sendable {
         var timebaseInfo = mach_timebase_info_data_t()
         mach_timebase_info(&timebaseInfo)
 
-        var entries: [ProcessMemoryEntry] = []
-        entries.reserveCapacity(min(Int(count), limit * 4))
+        // Phase 1: Collect PID + RSS + CPU times without resolving names (cheap).
+        struct RawEntry {
+            let pid: pid_t
+            let rss: UInt64
+            let cpuPercent: Double?
+        }
+        var rawEntries: [RawEntry] = []
+        rawEntries.reserveCapacity(Int(count))
 
         for pid in pids.prefix(Int(count)) where pid > 0 {
             var taskInfo = proc_taskinfo()
@@ -61,7 +70,7 @@ public final class MemoryMonitorService: Sendable {
             if let prev = prevTimes[pid] {
                 let deltaUser = userTime.saturatingSubtract(prev.user)
                 let deltaSystem = systemTime.saturatingSubtract(prev.system)
-                let deltaCPUNs = deltaUser + deltaSystem // already in nanoseconds from Mach
+                let deltaCPUNs = deltaUser + deltaSystem
                 let deltaWallNs = (now - prev.timestamp) * UInt64(timebaseInfo.numer) / UInt64(timebaseInfo.denom)
                 if deltaWallNs > 0 {
                     cpuPercent = Double(deltaCPUNs) / Double(deltaWallNs) * 100.0
@@ -69,22 +78,25 @@ public final class MemoryMonitorService: Sendable {
             }
 
             newCPUTimes[pid] = (user: userTime, system: systemTime, timestamp: now)
-
-            let name = processName(pid: pid)
-            let entry = ProcessMemoryEntry(
-                pid: pid,
-                name: name,
-                rssBytes: UInt64(taskInfo.pti_resident_size),
-                compressedBytes: nil,
-                cpuPercent: cpuPercent
-            )
-            entries.append(entry)
+            rawEntries.append(RawEntry(pid: pid, rss: UInt64(taskInfo.pti_resident_size), cpuPercent: cpuPercent))
         }
 
         previousCPUTimes.store(newCPUTimes)
 
-        entries.sort { $0.rssBytes > $1.rssBytes }
-        return Array(entries.prefix(limit))
+        // Phase 2: Sort by RSS and take top N.
+        rawEntries.sort { $0.rss > $1.rss }
+        let topRaw = rawEntries.prefix(limit)
+
+        // Phase 3: Resolve names only for top N entries (expensive syscalls).
+        return topRaw.map { raw in
+            ProcessMemoryEntry(
+                pid: raw.pid,
+                name: processName(pid: raw.pid),
+                rssBytes: raw.rss,
+                compressedBytes: nil,
+                cpuPercent: raw.cpuPercent
+            )
+        }
     }
 
     private func processName(pid: pid_t) -> String {
@@ -111,7 +123,7 @@ public final class MemoryMonitorService: Sendable {
 
         let result = withUnsafeMutablePointer(to: &vmStats) { pointer -> kern_return_t in
             pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { intPointer in
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, intPointer, &count)
+                host_statistics64(Self.hostPort, HOST_VM_INFO64, intPointer, &count)
             }
         }
 
@@ -120,7 +132,7 @@ public final class MemoryMonitorService: Sendable {
         }
 
         var pageSize: vm_size_t = 0
-        host_page_size(mach_host_self(), &pageSize)
+        host_page_size(Self.hostPort, &pageSize)
 
         let ps = UInt64(pageSize)
         let totalBytes = ProcessInfo.processInfo.physicalMemory

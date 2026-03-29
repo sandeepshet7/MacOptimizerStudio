@@ -94,12 +94,20 @@ cat > "${CONTENTS_DIR}/Info.plist" <<PLIST
     <string>AppIcon</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>MacOptimizer Studio uses AppleScript to perform system maintenance tasks that require administrator privileges.</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2024 MacOptimizer Studio. Licensed under the MIT License.</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
 </dict>
 </plist>
 PLIST
 
 echo "[4/6] Ad-hoc signing bundle for local launch"
-codesign --force --deep --sign - "${APP_BUNDLE}"
+codesign --force --deep --sign - --entitlements "${SCRIPT_DIR}/../MacOptimizerStudio.entitlements" "${APP_BUNDLE}"
 
 echo "[5/6] Creating zip"
 rm -f "${ZIP_PATH}"
@@ -107,7 +115,12 @@ ditto -c -k --sequesterRsrc --keepParent "${APP_BUNDLE}" "${ZIP_PATH}"
 
 echo "[6/6] Creating unsigned dmg"
 rm -f "${DMG_PATH}"
-hdiutil create -volname "${APP_NAME}" -srcfolder "${BUILD_ROOT}" -ov -format UDZO "${DMG_PATH}" >/dev/null
+DMG_STAGING="${BUILD_ROOT}/dmg-staging"
+rm -rf "${DMG_STAGING}"
+mkdir -p "${DMG_STAGING}"
+cp -R "${APP_BUNDLE}" "${DMG_STAGING}/"
+hdiutil create -volname "${APP_NAME}" -srcfolder "${DMG_STAGING}" -ov -format UDZO "${DMG_PATH}" >/dev/null
+rm -rf "${DMG_STAGING}"
 
 echo ""
 echo "Done. Artifacts:"

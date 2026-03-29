@@ -143,11 +143,11 @@ public final class DiskViewModel: ObservableObject {
     }
 
     public var activeCategories: [TargetCategory] {
-        Array(Set(cachedByCategory.keys)).sorted { $0.hashValue < $1.hashValue }
+        Array(Set(cachedByCategory.keys)).sorted { $0.rawValue < $1.rawValue }
     }
 
     public var activeKinds: [TargetKind] {
-        Array(Set(cachedByKind.keys)).sorted { $0.hashValue < $1.hashValue }
+        Array(Set(cachedByKind.keys)).sorted { $0.rawValue < $1.rawValue }
     }
 
     public func entriesGrouped() -> [TargetKind: [TargetEntry]] {

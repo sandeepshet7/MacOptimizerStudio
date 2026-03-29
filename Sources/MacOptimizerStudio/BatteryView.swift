@@ -3,7 +3,7 @@ import SwiftUI
 
 struct BatteryView: View {
     @EnvironmentObject private var systemHealthViewModel: SystemHealthViewModel
-    @AppStorage("battery_refresh_interval") private var batteryRefreshInterval: Int = 0
+    @AppStorage(StorageKeys.batteryRefreshInterval) private var batteryRefreshInterval: Int = 0
     @State private var refreshTimer: Timer?
     @State private var lastRefreshed: Date?
 

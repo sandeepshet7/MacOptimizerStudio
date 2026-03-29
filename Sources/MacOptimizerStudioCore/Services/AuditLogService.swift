@@ -2,6 +2,7 @@ import Foundation
 
 public struct AuditLogService: Sendable {
     private static let maxEntries = 10_000
+    private static let writeQueue = DispatchQueue(label: "com.macoptimizer.auditlog.write")
 
     public init() {}
 
@@ -17,14 +18,16 @@ public struct AuditLogService: Sendable {
     // MARK: - Write
 
     public func log(_ entry: AuditLogEntry) {
-        var entries = loadAll()
-        entries.insert(entry, at: 0)
+        Self.writeQueue.async {
+            var entries = self.loadAll()
+            entries.insert(entry, at: 0)
 
-        if entries.count > Self.maxEntries {
-            entries = Array(entries.prefix(Self.maxEntries))
+            if entries.count > Self.maxEntries {
+                entries = Array(entries.prefix(Self.maxEntries))
+            }
+
+            self.save(entries)
         }
-
-        save(entries)
     }
 
     // MARK: - Read
@@ -84,6 +87,12 @@ public struct AuditLogService: Sendable {
         return lines.joined(separator: "\n")
     }
 
+    // MARK: - Clear
+
+    public func clearAll() {
+        save([])
+    }
+
     // MARK: - Private
 
     private func save(_ entries: [AuditLogEntry]) {
@@ -94,7 +103,10 @@ public struct AuditLogService: Sendable {
             let data = try encoder.encode(entries)
             try data.write(to: logFileURL, options: .atomic)
         } catch {
-            // Silently fail — audit logging should never crash the app
+            ErrorCollector.shared.record(
+                source: "AuditLog",
+                message: "Failed to save audit log: \(error.localizedDescription)"
+            )
         }
     }
 }

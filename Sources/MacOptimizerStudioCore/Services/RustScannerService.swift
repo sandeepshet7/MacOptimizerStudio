@@ -36,10 +36,31 @@ public struct RustScannerService: Sendable {
         process.standardError = stderrPipe
 
         try process.run()
-        process.waitUntilExit()
 
-        let outputData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-        let errData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+        // Read stdout and stderr concurrently to avoid pipe-buffer deadlocks.
+        // Each pipe has a ~64 KB kernel buffer; if the process fills one while
+        // we are blocked reading the other, both sides stall forever.
+        // Use nonisolated(unsafe) to satisfy Swift 6 strict concurrency for
+        // variables that are safely synchronized via DispatchGroup.
+        nonisolated(unsafe) var outputData = Data()
+        nonisolated(unsafe) var errData = Data()
+
+        let group = DispatchGroup()
+
+        group.enter()
+        DispatchQueue.global(qos: .userInitiated).async {
+            outputData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+
+        group.enter()
+        DispatchQueue.global(qos: .userInitiated).async {
+            errData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+
+        group.wait()
+        process.waitUntilExit()
 
         guard process.terminationStatus == 0 else {
             let stderr = String(data: errData, encoding: .utf8) ?? "Unknown scanner error"
@@ -62,10 +83,12 @@ public struct RustScannerService: Sendable {
     private func locateScannerBinary() throws -> URL {
         let fileManager = FileManager.default
 
+        #if DEBUG
         if let envPath = ProcessInfo.processInfo.environment["MACOPT_SCANNER_PATH"],
            fileManager.isExecutableFile(atPath: envPath) {
             return URL(fileURLWithPath: envPath)
         }
+        #endif
 
         if let bundleScanner = Bundle.main.url(forResource: "macopt-scanner", withExtension: nil),
            fileManager.isExecutableFile(atPath: bundleScanner.path) {

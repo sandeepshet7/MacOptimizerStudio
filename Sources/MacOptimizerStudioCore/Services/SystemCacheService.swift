@@ -608,17 +608,18 @@ public struct SystemCacheService: Sendable {
 
     private func directorySize(at path: String) -> UInt64 {
         let fm = FileManager.default
-        guard let enumerator = fm.enumerator(atPath: path) else { return 0 }
+        let url = URL(fileURLWithPath: path)
+        guard let enumerator = fm.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.totalFileAllocatedSizeKey, .isRegularFileKey],
+            options: []
+        ) else { return 0 }
 
         var total: UInt64 = 0
-        while let file = enumerator.nextObject() as? String {
-            let fullPath = "\(path)/\(file)"
-            let url = URL(fileURLWithPath: fullPath)
-            // Use totalFileAllocatedSize for actual disk usage (handles sparse files like Docker.raw)
-            if let values = try? url.resourceValues(forKeys: [.totalFileAllocatedSizeKey, .fileSizeKey]) {
-                let size = UInt64(values.totalFileAllocatedSize ?? values.fileSize ?? 0)
-                total += size
-            }
+        for case let fileURL as URL in enumerator {
+            guard let values = try? fileURL.resourceValues(forKeys: [.totalFileAllocatedSizeKey, .isRegularFileKey]),
+                  values.isRegularFile == true else { continue }
+            total += UInt64(values.totalFileAllocatedSize ?? 0)
         }
         return total
     }

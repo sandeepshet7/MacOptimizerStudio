@@ -27,6 +27,14 @@ public final class AuditLogViewModel: ObservableObject {
         service.exportAsText()
     }
 
+    public func clearLog() async {
+        let svc = service
+        await Task.detached(priority: .userInitiated) {
+            svc.clearAll()
+        }.value
+        entries = []
+    }
+
     // MARK: - Grouped by Day
 
     private static let dayFormatter: DateFormatter = {

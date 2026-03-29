@@ -42,18 +42,21 @@ public struct DockerService: Sendable {
     }
 
     public func removeImage(id: String) -> Bool {
-        let output = runCommand("docker", arguments: ["rmi", "--force", id])
+        // "--" terminates flag parsing so a crafted id like "--all-tags" is not
+        // interpreted as a Docker flag (argument injection / flag injection).
+        let output = runCommand("docker", arguments: ["rmi", "--force", "--", id])
         return output != nil
     }
 
     public func removeVolume(name: String) -> Bool {
-        let output = runCommand("docker", arguments: ["volume", "rm", name])
+        let output = runCommand("docker", arguments: ["volume", "rm", "--", name])
         return output != nil
     }
 
     public func removeContainer(id: String, force: Bool = false) -> Bool {
         var args = ["rm"]
         if force { args.append("-f") }
+        args.append("--")
         args.append(id)
         let output = runCommand("docker", arguments: args)
         return output != nil
@@ -112,7 +115,7 @@ public struct DockerService: Sendable {
     }
 
     private func volumeSize(name: String) -> UInt64 {
-        guard let output = runCommand("docker", arguments: ["volume", "inspect", name, "--format", "{{.UsageData.Size}}"]) else {
+        guard let output = runCommand("docker", arguments: ["volume", "inspect", "--format", "{{.UsageData.Size}}", "--", name]) else {
             return 0
         }
         let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -218,13 +221,9 @@ public struct DockerService: Sendable {
             }
         }
 
-        if !found {
-            // Fall back to using env
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = [executable] + arguments
-        } else {
-            process.arguments = arguments
-        }
+        guard found else { return nil }
+
+        process.arguments = arguments
 
         let stdout = Pipe()
         let stderr = Pipe()
@@ -233,11 +232,12 @@ public struct DockerService: Sendable {
 
         do {
             try process.run()
+
+            // Read stdout before waitUntilExit to prevent pipe buffer deadlock
+            let data = stdout.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
 
             guard process.terminationStatus == 0 else { return nil }
-
-            let data = stdout.fileHandleForReading.readDataToEndOfFile()
             return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
         } catch {
             return nil

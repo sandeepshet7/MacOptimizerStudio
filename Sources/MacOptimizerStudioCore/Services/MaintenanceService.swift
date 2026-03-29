@@ -100,8 +100,17 @@ public struct MaintenanceService: Sendable {
         let startTime = Date()
 
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = ["-c", task.command]
+
+        if task.requiresSudo {
+            // Use macOS auth dialog for privilege escalation
+            let cleanCommand = task.command.hasPrefix("sudo ") ? String(task.command.dropFirst(5)) : task.command
+            let escapedClean = cleanCommand.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            process.arguments = ["-e", "do shell script \"\(escapedClean)\" with administrator privileges"]
+        } else {
+            process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+            process.arguments = ["-c", task.command]
+        }
 
         let outputPipe = Pipe()
         let errorPipe = Pipe()

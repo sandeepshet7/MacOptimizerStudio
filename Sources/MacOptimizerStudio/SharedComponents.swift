@@ -1,4 +1,17 @@
+import AppKit
 import SwiftUI
+
+// MARK: - Design Tokens
+
+enum DesignTokens {
+    static let cardPadding: CGFloat = 16
+    static let cardCornerRadius: CGFloat = 10
+    static let contentPadding: CGFloat = 24
+    static let contentMaxWidth: CGFloat = 1200
+    static let gridSpacing: CGFloat = 12
+    static let sectionSpacing: CGFloat = 20
+    static let statCardMinWidth: CGFloat = 200
+}
 
 // MARK: - Mini Sparkline Chart
 
@@ -51,6 +64,9 @@ struct Sparkline: View {
             )
         }
         .frame(height: height)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Sparkline chart")
+        .accessibilityValue(data.isEmpty ? "No data" : "Range \(String(format: "%.0f", data.min() ?? 0)) to \(String(format: "%.0f", data.max() ?? 0))")
     }
 }
 
@@ -65,7 +81,7 @@ struct ProportionalBar: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.primary.opacity(0.06))
+                    .fill(Color.primary.opacity(0.10))
                 Capsule()
                     .fill(tint)
                     .frame(width: max(2, geo.size.width * min(max(value, 0), 1)))
@@ -73,6 +89,9 @@ struct ProportionalBar: View {
             }
         }
         .frame(height: height)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Progress bar")
+        .accessibilityValue("\(Int(value * 100)) percent")
     }
 }
 
@@ -121,6 +140,8 @@ struct SeverityBadge: View {
         .background(level.color.opacity(0.15))
         .foregroundStyle(level.color)
         .clipShape(Capsule())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Status: \(level.label)")
     }
 }
 
@@ -128,7 +149,6 @@ struct SeverityBadge: View {
 
 struct StaggeredAppear: ViewModifier {
     let index: Int
-    let total: Int
     @State private var appeared = false
 
     func body(content: Content) -> some View {
@@ -145,8 +165,8 @@ struct StaggeredAppear: ViewModifier {
 }
 
 extension View {
-    func staggeredAppear(index: Int, total: Int = 10) -> some View {
-        modifier(StaggeredAppear(index: index, total: total))
+    func staggeredAppear(index: Int) -> some View {
+        modifier(StaggeredAppear(index: index))
     }
 }
 
@@ -159,11 +179,11 @@ struct StyledCard<Content: View>: View {
     }
     var body: some View {
         content
-            .padding(16)
+            .padding(DesignTokens.cardPadding)
             .background(Color(nsColor: .controlBackgroundColor))
-            .cornerRadius(10)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.cardCornerRadius))
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: DesignTokens.cardCornerRadius)
                     .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
             )
     }
@@ -226,6 +246,8 @@ struct StatCard: View {
                     .foregroundColor(.primary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(title): \(value)")
         }
     }
 }
@@ -302,6 +324,18 @@ struct PulseModifier: ViewModifier {
 extension View {
     func pulseWhenActive(_ isActive: Bool) -> some View {
         modifier(PulseModifier(isActive: isActive))
+    }
+}
+
+// MARK: - Finder Helper
+
+enum FinderHelper {
+    static func reveal(path: String) {
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+    }
+
+    static func reveal(file filePath: String, in directory: String) {
+        NSWorkspace.shared.selectFile(filePath, inFileViewerRootedAtPath: directory)
     }
 }
 

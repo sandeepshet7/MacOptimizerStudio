@@ -29,10 +29,9 @@ struct HomeView: View {
     @State private var quickCleanReady = false
     @State private var quickCleanResults: [(category: CacheCategory, count: Int, bytes: UInt64)] = []
     @State private var quickCleanTotalBytes: UInt64 = 0
-    @State private var isQuickCleaning = false
     @State private var quickCleanDone = false
     @State private var quickCleanFreedBytes: UInt64 = 0
-    @State private var showQuickCleanConfirm = false
+    @State private var quickCleanExecutionRequest: ExecutionRequest?
 
     var body: some View {
         ScrollView {
@@ -52,8 +51,8 @@ struct HomeView: View {
                 }
                 insightsPanel
             }
-            .padding(24)
-            .frame(maxWidth: 1200)
+            .padding(DesignTokens.contentPadding)
+            .frame(maxWidth: DesignTokens.contentMaxWidth)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(Color(nsColor: .windowBackgroundColor))
@@ -77,6 +76,20 @@ struct HomeView: View {
                 if cpuHistory.count > 20 { cpuHistory.removeFirst() }
             }
         }
+        .sheet(item: $quickCleanExecutionRequest) { request in
+            MultiConfirmSheet(request: request) { success in
+                quickCleanExecutionRequest = nil
+                if success {
+                    cacheViewModel.logCleanup(itemCount: request.items.count)
+                    quickCleanFreedBytes = request.items.reduce(UInt64(0)) { $0 + $1.sizeBytes }
+                    Task { await cacheViewModel.scan() }
+                    withAnimation {
+                        quickCleanReady = false
+                        quickCleanDone = true
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Welcome
@@ -86,7 +99,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("MacOptimizer Studio")
                     .font(.largeTitle.weight(.bold))
-                Text("Monitor performance, clean caches, and optimize your Mac.")
+                Text("Your Mac, But Faster")
                     .font(.body)
                     .foregroundStyle(.secondary)
             }
@@ -99,9 +112,9 @@ struct HomeView: View {
                         .font(.headline)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.green)
+                .tint(.orange)
                 .controlSize(.large)
-                .disabled(isQuickScanning || isSmartScanning || isQuickCleaning)
+                .disabled(isQuickScanning || isSmartScanning)
 
                 Button {
                     Task { await runSmartScan() }
@@ -324,30 +337,8 @@ struct HomeView: View {
         }
     }
 
-    private func executeQuickClean() async {
-        isQuickCleaning = true
-        let commands = cacheViewModel.cleanupCommands()
-        let totalSize = cacheViewModel.selectedTotalBytes
-
-        for command in commands {
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/bin/bash")
-            task.arguments = ["-c", command]
-            try? task.run()
-            task.waitUntilExit()
-        }
-
-        cacheViewModel.logCleanup(itemCount: cacheViewModel.selectedEntries.count)
-        quickCleanFreedBytes = totalSize
-
-        // Re-scan to update cache data
-        await cacheViewModel.scan()
-
-        withAnimation {
-            isQuickCleaning = false
-            quickCleanReady = false
-            quickCleanDone = true
-        }
+    private func presentQuickCleanConfirmation() {
+        quickCleanExecutionRequest = cacheViewModel.executionRequest()
     }
 
     private var quickCleanSection: some View {
@@ -447,24 +438,14 @@ struct HomeView: View {
                             .buttonStyle(.bordered)
 
                             Button {
-                                Task { await executeQuickClean() }
+                                presentQuickCleanConfirmation()
                             } label: {
-                                HStack(spacing: 6) {
-                                    if isQuickCleaning {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                    }
-                                    Text(isQuickCleaning ? "Cleaning..." : "Clean Now")
-                                        .font(.body.weight(.medium))
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Color.green)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
+                                Text("Clean Now")
+                                    .font(.body.weight(.medium))
                             }
-                            .buttonStyle(.plain)
-                            .disabled(isQuickCleaning)
+                            .buttonStyle(.borderedProminent)
+                            .tint(.orange)
+                            .controlSize(.large)
                         }
                     }
                 }
@@ -636,7 +617,7 @@ struct HomeView: View {
     }
 
     private var cacheScorePoints: Int {
-        guard let report = cacheViewModel.report else { return 8 }
+        guard cacheViewModel.report != nil else { return 8 }
         let safeBytes = cacheViewModel.safeTotalBytes
         if safeBytes < 500 * 1024 * 1024 { return 10 }
         if safeBytes < 2 * 1024 * 1024 * 1024 { return 5 }
@@ -874,7 +855,7 @@ struct HomeView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
-                    .tint(.green)
+                    .tint(.orange)
                 } else {
                     Text("\(report.entries.count) items found")
                         .font(.caption)

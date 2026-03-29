@@ -133,7 +133,7 @@ struct DuplicateFinderView: View {
                             Spacer()
 
                             Button {
-                                revealInFinder(path: root.path)
+                                FinderHelper.reveal(path: root.path)
                             } label: {
                                 Image(systemName: "arrow.right.circle")
                                     .foregroundStyle(.secondary)
@@ -368,7 +368,7 @@ struct DuplicateFinderView: View {
                     Spacer()
 
                     Button {
-                        revealInFinder(path: path)
+                        FinderHelper.reveal(path: path)
                     } label: {
                         Image(systemName: "arrow.right.circle")
                             .font(.caption)
@@ -459,9 +459,6 @@ struct DuplicateFinderView: View {
         }
     }
 
-    private func revealInFinder(path: String) {
-        NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: (path as NSString).deletingLastPathComponent)
-    }
 
     private func fileName(from path: String) -> String {
         (path as NSString).lastPathComponent

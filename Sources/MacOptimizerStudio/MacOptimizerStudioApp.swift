@@ -39,8 +39,8 @@ struct MacOptimizerStudioApp: App {
     @StateObject private var toastManager = ToastManager()
     @StateObject private var alertManager = AlertManager()
 
-    @AppStorage("default_scan_preset") private var defaultScanPreset = "balanced"
-    @AppStorage("auto_scan_on_launch") private var autoScanOnLaunch = false
+    @AppStorage(StorageKeys.defaultScanPreset) private var defaultScanPreset = "balanced"
+    @AppStorage(StorageKeys.autoScanOnLaunch) private var autoScanOnLaunch = false
 
     var body: some Scene {
         WindowGroup("MacOptimizer Studio") {
@@ -113,7 +113,7 @@ struct MacOptimizerStudioApp: App {
                     }()
                     Image(nsImage: resized)
                 } else {
-                    Image(systemName: "gauge.medium")
+                    Image(systemName: "gauge.with.dots.needle.67percent")
                 }
             }
         }

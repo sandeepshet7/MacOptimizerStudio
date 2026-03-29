@@ -177,7 +177,7 @@ struct LoginItemsView: View {
 
             HStack(spacing: 4) {
                 Button("Reveal") {
-                    revealInFinder(path: item.path)
+                    FinderHelper.reveal(path: item.path)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.mini)
@@ -270,7 +270,4 @@ struct LoginItemsView: View {
         return result
     }
 
-    private func revealInFinder(path: String) {
-        NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: (path as NSString).deletingLastPathComponent)
-    }
 }

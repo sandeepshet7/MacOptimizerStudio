@@ -30,72 +30,18 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Styled Card Container
-
-private struct SettingsCard<Content: View>: View {
-    let content: Content
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-    var body: some View {
-        content
-            .padding(16)
-            .background(Color(nsColor: .controlBackgroundColor))
-            .cornerRadius(10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 0.5)
-            )
-    }
-}
-
-private struct SettingsSectionHeader: View {
-    let icon: String
-    let title: String
-    let color: Color
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.subheadline)
-                .foregroundColor(color)
-                .frame(width: 20)
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(.primary)
-        }
-    }
-}
-
-private struct SettingsRow: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.body)
-                .foregroundColor(.primary)
-            Spacer()
-            Text(value)
-                .font(.body)
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
 // MARK: - General
 
 private struct GeneralSettingsTab: View {
-    @AppStorage("default_scan_preset") private var defaultScanPreset: String = ScanPreset.balanced.rawValue
-    @AppStorage("auto_scan_on_launch") private var autoScanOnLaunch: Bool = false
-    @AppStorage("confirm_before_cleanup") private var confirmBeforeCleanup: Bool = true
-    @AppStorage("memory_poll_interval") private var memoryPollInterval: Int = 10
-    @AppStorage("alert_memory_critical") private var alertMemoryCritical = true
-    @AppStorage("alert_cpu_high") private var alertCPUHigh = true
-    @AppStorage("alert_disk_full") private var alertDiskFull = true
-    @AppStorage("color_scheme_override") private var colorSchemeOverride: String = "system"
-    @AppStorage("battery_refresh_interval") private var batteryRefreshInterval: Int = 0
+    @AppStorage(StorageKeys.defaultScanPreset) private var defaultScanPreset: String = ScanPreset.balanced.rawValue
+    @AppStorage(StorageKeys.autoScanOnLaunch) private var autoScanOnLaunch: Bool = false
+    @AppStorage(StorageKeys.confirmBeforeCleanup) private var confirmBeforeCleanup: Bool = true
+    @AppStorage(StorageKeys.memoryPollInterval) private var memoryPollInterval: Int = 10
+    @AppStorage(StorageKeys.alertMemoryCritical) private var alertMemoryCritical = true
+    @AppStorage(StorageKeys.alertCPUHigh) private var alertCPUHigh = true
+    @AppStorage(StorageKeys.alertDiskFull) private var alertDiskFull = true
+    @AppStorage(StorageKeys.colorSchemeOverride) private var colorSchemeOverride: String = "system"
+    @AppStorage(StorageKeys.batteryRefreshInterval) private var batteryRefreshInterval: Int = 0
 
     private let pollIntervals: [Int] = [5, 10, 15, 30]
     private let batteryIntervals: [(label: String, value: Int)] = [
@@ -111,9 +57,9 @@ private struct GeneralSettingsTab: View {
         ScrollView {
             VStack(spacing: 16) {
                 // Scanning & Safety
-                SettingsCard {
+                StyledCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        SettingsSectionHeader(icon: "magnifyingglass", title: "Scanning", color: .blue)
+                        CardSectionHeader(icon: "magnifyingglass", title: "Scanning", color: .blue)
 
                         Divider()
 
@@ -146,9 +92,9 @@ private struct GeneralSettingsTab: View {
                 }
 
                 // Monitor & Alerts
-                SettingsCard {
+                StyledCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        SettingsSectionHeader(icon: "waveform.path.ecg", title: "Monitor & Alerts", color: .orange)
+                        CardSectionHeader(icon: "waveform.path.ecg", title: "Monitor & Alerts", color: .orange)
 
                         Divider()
 
@@ -196,9 +142,9 @@ private struct GeneralSettingsTab: View {
                 }
 
                 // Appearance
-                SettingsCard {
+                StyledCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        SettingsSectionHeader(icon: "paintbrush", title: "Appearance", color: .purple)
+                        CardSectionHeader(icon: "paintbrush", title: "Appearance", color: .orange)
 
                         Divider()
 
@@ -235,9 +181,9 @@ private struct BugReportSettingsTab: View {
         ScrollView {
             VStack(spacing: 16) {
                 // Report Action
-                SettingsCard {
+                StyledCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        SettingsSectionHeader(icon: "ladybug", title: "Report a Problem", color: .red)
+                        CardSectionHeader(icon: "ladybug", title: "Report a Problem", color: .red)
 
                         Divider()
 
@@ -249,18 +195,11 @@ private struct BugReportSettingsTab: View {
                             Button {
                                 generateAndSave()
                             } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "doc.text.magnifyingglass")
-                                    Text("Generate Bug Report")
-                                }
-                                .font(.body.weight(.medium))
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Color.orange)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
+                                Label("Generate Bug Report", systemImage: "doc.text.magnifyingglass")
+                                    .font(.body.weight(.medium))
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.borderedProminent)
+                            .tint(.orange)
 
                             if reportGenerated {
                                 HStack(spacing: 4) {
@@ -289,7 +228,7 @@ private struct BugReportSettingsTab: View {
                                 } label: {
                                     Text("Reveal in Finder")
                                         .font(.caption)
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(.orange)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -301,9 +240,9 @@ private struct BugReportSettingsTab: View {
                 }
 
                 // What's Included
-                SettingsCard {
+                StyledCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        SettingsSectionHeader(icon: "checklist", title: "What's Included", color: .green)
+                        CardSectionHeader(icon: "checklist", title: "What's Included", color: .green)
 
                         Divider()
 
@@ -318,9 +257,9 @@ private struct BugReportSettingsTab: View {
                 }
 
                 // Recent Errors
-                SettingsCard {
+                StyledCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        SettingsSectionHeader(icon: "exclamationmark.triangle", title: "Recent Errors", color: .yellow)
+                        CardSectionHeader(icon: "exclamationmark.triangle", title: "Recent Errors", color: .yellow)
 
                         Divider()
 
@@ -388,7 +327,8 @@ private struct BugReportSettingsTab: View {
             savedPath = url.path
             reportGenerated = true
         } catch {
-            // Failed to save
+            savedPath = nil
+            reportGenerated = false
         }
     }
 
@@ -414,7 +354,7 @@ private struct AboutSettingsTab: View {
         ScrollView {
             VStack(spacing: 16) {
                 // App Identity
-                SettingsCard {
+                StyledCard {
                     VStack(spacing: 14) {
                         // App icon + name
                         Group {
@@ -451,19 +391,19 @@ private struct AboutSettingsTab: View {
                 }
 
                 // System Info
-                SettingsCard {
+                StyledCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        SettingsSectionHeader(icon: "desktopcomputer", title: "Compatibility", color: .blue)
+                        CardSectionHeader(icon: "desktopcomputer", title: "Compatibility", color: .blue)
 
                         Divider()
 
-                        SettingsRow(label: "Minimum macOS", value: "macOS 12 Monterey")
+                        InfoRow(label: "Minimum macOS", value: "macOS 12 Monterey")
                         Divider()
-                        SettingsRow(label: "Architectures", value: "Apple Silicon & Intel")
+                        InfoRow(label: "Architectures", value: "Apple Silicon & Intel")
                         Divider()
-                        SettingsRow(label: "Apple Silicon", value: "M1, M2, M3, M4, M5")
+                        InfoRow(label: "Apple Silicon", value: "M1, M2, M3, M4, M5")
                         Divider()
-                        SettingsRow(label: "Intel", value: "x86_64 (2015+)")
+                        InfoRow(label: "Intel", value: "x86_64 (2015+)")
 
                         Text("Universal binary — runs natively on all supported Mac processors. No Rosetta required on Apple Silicon.")
                             .font(.caption)
@@ -472,9 +412,9 @@ private struct AboutSettingsTab: View {
                 }
 
                 // Links
-                SettingsCard {
+                StyledCard {
                     VStack(alignment: .leading, spacing: 14) {
-                        SettingsSectionHeader(icon: "link", title: "Links", color: .orange)
+                        CardSectionHeader(icon: "link", title: "Links", color: .orange)
 
                         Divider()
 
@@ -541,6 +481,19 @@ private struct AboutSettingsTab: View {
                             }
                         }
                         .buttonStyle(.plain)
+                    }
+                }
+
+                // Disclaimer
+                StyledCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        CardSectionHeader(icon: "exclamationmark.shield", title: "Disclaimer", color: .orange)
+
+                        Divider()
+
+                        Text("This software is provided \"as is\" without warranty of any kind. The developers are not liable for any data loss, system damage, or other harm resulting from use of this application. Destructive operations (file deletion, cache cleanup, process termination) cannot be undone. Always review actions before confirming.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
 

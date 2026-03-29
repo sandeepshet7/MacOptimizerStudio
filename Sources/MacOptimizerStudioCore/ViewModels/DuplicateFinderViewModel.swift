@@ -12,9 +12,7 @@ public final class DuplicateFinderViewModel: ObservableObject {
 
     private let service = DuplicateFinderService()
 
-    public init() {
-        roots = [FileManager.default.homeDirectoryForCurrentUser]
-    }
+    public init() {}
 
     public func scan() async {
         guard !isScanning else { return }

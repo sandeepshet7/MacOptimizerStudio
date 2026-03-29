@@ -14,6 +14,7 @@ public final class NetworkViewModel: ObservableObject {
     private var previousBytesOut: UInt64 = 0
     private var previousTime: Date?
     private let maxHistoryPoints = 60
+    private var refreshTask: Task<Void, Never>?
 
     public init(service: NetworkMonitorService = NetworkMonitorService()) {
         self.service = service
@@ -42,9 +43,10 @@ public final class NetworkViewModel: ObservableObject {
         let prevOut = previousBytesOut
         let prevTime = previousTime
 
+        refreshTask?.cancel()
         isLoading = snapshot == nil
 
-        Task {
+        refreshTask = Task {
             let newSnapshot = await Task.detached(priority: .userInitiated) {
                 svc.captureSnapshot(previousBytesIn: prevIn, previousBytesOut: prevOut, previousTime: prevTime)
             }.value

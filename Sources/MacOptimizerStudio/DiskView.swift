@@ -23,7 +23,7 @@ struct DiskView: View {
     @State private var pendingDangerCommand: CleanupCommand?
     @State private var pendingDangerPath = ""
 
-    @AppStorage("confirm_before_cleanup") private var confirmBeforeCleanup = true
+    @AppStorage(StorageKeys.confirmBeforeCleanup) private var confirmBeforeCleanup = true
 
     private let factory = CleanupCommandFactory()
 
@@ -37,7 +37,7 @@ struct DiskView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: DesignTokens.sectionSpacing) {
                 scanRootsPanel
 
                 if viewModel.report != nil {
@@ -56,8 +56,8 @@ struct DiskView: View {
                     emptyState
                 }
             }
-            .padding(20)
-            .frame(maxWidth: 1280)
+            .padding(DesignTokens.contentPadding)
+            .frame(maxWidth: DesignTokens.contentMaxWidth)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .safeAreaInset(edge: .bottom) {
@@ -181,7 +181,7 @@ struct DiskView: View {
                 Text("Analyzing project directories for cleanup targets.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 10)], spacing: 10) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: DesignTokens.statCardMinWidth), spacing: DesignTokens.gridSpacing)], spacing: DesignTokens.gridSpacing) {
                     ForEach(0..<4, id: \.self) { _ in
                         SkeletonCard(height: 80)
                     }
@@ -245,7 +245,7 @@ struct DiskView: View {
                             Spacer()
 
                             Button {
-                                revealInFinder(path: root.path)
+                                FinderHelper.reveal(path: root.path)
                             } label: {
                                 Image(systemName: "arrow.right.circle")
                                     .foregroundStyle(.secondary)
@@ -323,7 +323,7 @@ struct DiskView: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .background(.ultraThinMaterial)
         .overlay(alignment: .top) { Divider() }
     }
@@ -331,7 +331,7 @@ struct DiskView: View {
     // MARK: - Category Summary
 
     private var categorySummary: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 10)], spacing: 10) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: DesignTokens.statCardMinWidth), spacing: DesignTokens.gridSpacing)], spacing: DesignTokens.gridSpacing) {
             ForEach(TargetCategory.allCases, id: \.self) { category in
                 categorySummaryCard(category)
             }
@@ -520,7 +520,7 @@ struct DiskView: View {
                 Spacer()
 
                 Button {
-                    revealInFinder(path: entry.path)
+                    FinderHelper.reveal(path: entry.path)
                 } label: {
                     Image(systemName: "arrow.right.circle")
                         .font(.caption)
@@ -578,7 +578,7 @@ struct DiskView: View {
         StyledCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    CardSectionHeader(icon: "folder.fill.badge.questionmark", title: "Largest Folders", color: .purple)
+                    CardSectionHeader(icon: "folder.fill.badge.questionmark", title: "Largest Folders", color: .orange)
 
                     Spacer()
 
@@ -599,7 +599,7 @@ struct DiskView: View {
                                     .lineLimit(1)
                                     .truncationMode(.middle)
                                 Button {
-                                    revealInFinder(path: total.path)
+                                    FinderHelper.reveal(path: total.path)
                                 } label: {
                                     Image(systemName: "arrow.right.circle")
                                         .font(.caption)
@@ -749,10 +749,6 @@ struct DiskView: View {
     private func folderPercent(_ total: FolderTotal) -> CGFloat {
         guard totalRootBytes > 0 else { return 0 }
         return CGFloat(Double(total.sizeBytes) / Double(totalRootBytes))
-    }
-
-    private func revealInFinder(path: String) {
-        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
     }
 
     private func copyCommand(_ command: String) {

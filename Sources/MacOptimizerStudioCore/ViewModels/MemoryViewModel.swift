@@ -11,14 +11,17 @@ public final class MemoryViewModel: ObservableObject {
 
     private let service: MemoryMonitorService
     private var timer: Timer?
+    private var pollingSubscriberCount = 0
     private var rssHistory: [Int32: [UInt64]] = [:]
     private let historyDepth = 6
+    private var refreshTask: Task<Void, Never>?
 
     public init(service: MemoryMonitorService = MemoryMonitorService()) {
         self.service = service
     }
 
     public func startPolling(interval: TimeInterval = 10.0) {
+        pollingSubscriberCount += 1
         guard timer == nil else { return }
         refreshNow()
 
@@ -31,6 +34,9 @@ public final class MemoryViewModel: ObservableObject {
     }
 
     public func stopPolling() {
+        pollingSubscriberCount -= 1
+        guard pollingSubscriberCount <= 0 else { return }
+        pollingSubscriberCount = 0
         timer?.invalidate()
         timer = nil
     }
@@ -40,9 +46,10 @@ public final class MemoryViewModel: ObservableObject {
     }
 
     public func refreshNow() {
+        refreshTask?.cancel()
         let svc = service
         let top = topCount
-        Task {
+        refreshTask = Task {
             let newSnapshot = await Task.detached(priority: .utility) {
                 svc.captureSnapshot(topCount: top)
             }.value

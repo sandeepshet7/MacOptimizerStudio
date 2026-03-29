@@ -22,12 +22,18 @@ public struct UpdaterService: Sendable {
     }
 
     public func updateApp(name: String) -> UpdateResult {
-        let output = runBrew(arguments: ["upgrade", name])
+        // Validate formula/cask name to prevent argument injection
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_@/.+-"))
+        guard !name.isEmpty, name.unicodeScalars.allSatisfy({ allowed.contains($0) }) else {
+            return UpdateResult(appName: name, success: false, error: "Invalid formula name: \(name)")
+        }
+
+        let output = runBrew(arguments: ["upgrade", "--", name])
         if let output, !output.isEmpty {
             return UpdateResult(appName: name, success: true)
         }
         // Check if the command ran but produced no output (still success)
-        let checkOutput = runBrew(arguments: ["info", name])
+        let checkOutput = runBrew(arguments: ["info", "--", name])
         if checkOutput != nil {
             return UpdateResult(appName: name, success: true)
         }

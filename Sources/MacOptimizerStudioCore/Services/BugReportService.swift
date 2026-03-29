@@ -13,6 +13,7 @@ public struct BugReportService: Sendable {
 
         // Header
         lines.append("MacOptimizer Studio — Bug Report")
+        lines.append("Note: Some identifying information has been automatically redacted.")
         lines.append("Generated: \(ISO8601DateFormatter().string(from: Date()))")
         lines.append("App Version: \(appVersion) (\(buildNumber))")
         lines.append(divider)
@@ -25,7 +26,7 @@ public struct BugReportService: Sendable {
             lines.append("  CPU: \(hw.cpuModel)")
             lines.append("  Cores: \(hw.cpuCoreCount)")
             lines.append("  RAM: \(ByteFormatting.memoryString(hw.totalRAMBytes))")
-            lines.append("  Hostname: \(hw.hostname)")
+            lines.append("  Hostname: [redacted]")
             lines.append("  Uptime: \(formatUptime(hw.uptimeSeconds))")
         } else {
             lines.append("  (Not available)")
@@ -63,7 +64,7 @@ public struct BugReportService: Sendable {
                 lines.append("  [\(df.string(from: entry.timestamp))] \(entry.source)")
                 lines.append("    \(entry.message)")
                 if let context = entry.context {
-                    lines.append("    Context: \(context)")
+                    lines.append("    Context: \(redactPaths(context))")
                 }
                 lines.append("")
             }
@@ -76,7 +77,7 @@ public struct BugReportService: Sendable {
         df.dateStyle = .short
         df.timeStyle = .medium
         for entry in recentAuditEntries.prefix(20) {
-            var line = "  [\(df.string(from: entry.timestamp))] \(entry.action.label): \(entry.details)"
+            var line = "  [\(df.string(from: entry.timestamp))] \(entry.action.label): \(redactPaths(entry.details))"
             if let bytes = entry.totalBytes {
                 line += " (\(ByteFormatting.string(bytes)))"
             }
@@ -105,6 +106,10 @@ public struct BugReportService: Sendable {
 
     private var buildNumber: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    }
+
+    private func redactPaths(_ text: String) -> String {
+        text.replacingOccurrences(of: NSHomeDirectory(), with: "~")
     }
 
     private func formatUptime(_ seconds: TimeInterval) -> String {

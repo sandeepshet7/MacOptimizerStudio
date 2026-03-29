@@ -4,6 +4,7 @@ import SwiftUI
 
 struct AuditLogView: View {
     @EnvironmentObject private var viewModel: AuditLogViewModel
+    @State private var showClearConfirmation = false
 
     var body: some View {
         ScrollView {
@@ -17,6 +18,14 @@ struct AuditLogView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .alert("Clear Activity Log", isPresented: $showClearConfirmation) {
+            Button("Clear All", role: .destructive) {
+                Task { await viewModel.clearLog() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently delete all \(viewModel.totalActions) log entries. This action cannot be undone.")
+        }
         .task {
             await viewModel.load()
         }
@@ -41,6 +50,14 @@ struct AuditLogView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(.orange)
+
+            Button(role: .destructive) {
+                showClearConfirmation = true
+            } label: {
+                Label("Clear Log", systemImage: "trash")
+            }
+            .buttonStyle(.bordered)
+            .disabled(viewModel.entries.isEmpty)
 
             Button {
                 Task { await viewModel.load() }

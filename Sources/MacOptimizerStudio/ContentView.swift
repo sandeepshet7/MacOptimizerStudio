@@ -4,9 +4,9 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ContentView: View {
-    @AppStorage("has_seen_intro") private var hasSeenIntro = false
-    @AppStorage("color_scheme_override") private var colorSchemeOverride = "system"
-    @AppStorage("default_scan_preset") private var defaultScanPreset = "balanced"
+    @AppStorage(StorageKeys.hasSeenIntro) private var hasSeenIntro = false
+    @AppStorage(StorageKeys.colorSchemeOverride) private var colorSchemeOverride = "system"
+    @AppStorage(StorageKeys.defaultScanPreset) private var defaultScanPreset = "balanced"
 
     @EnvironmentObject private var diskViewModel: DiskViewModel
     @EnvironmentObject private var memoryViewModel: MemoryViewModel
@@ -18,9 +18,9 @@ struct ContentView: View {
     @EnvironmentObject private var toastManager: ToastManager
     @EnvironmentObject private var alertManager: AlertManager
 
-    @AppStorage("alert_memory_critical") private var alertMemoryCritical = true
-    @AppStorage("alert_cpu_high") private var alertCPUHigh = true
-    @AppStorage("alert_disk_full") private var alertDiskFull = true
+    @AppStorage(StorageKeys.alertMemoryCritical) private var alertMemoryCritical = true
+    @AppStorage(StorageKeys.alertCPUHigh) private var alertCPUHigh = true
+    @AppStorage(StorageKeys.alertDiskFull) private var alertDiskFull = true
 
     @State private var selectedSection: AppSection = .home
     @State private var scanPreset: ScanPreset = .balanced
@@ -188,14 +188,19 @@ struct ContentView: View {
         .contentShape(Rectangle())
     }
 
+    @ViewBuilder
     private func sidebarButton(_ section: AppSection) -> some View {
-        SidebarButtonView(
+        let button = SidebarButtonView(
             section: section,
             isActive: selectedSection == section,
             dotColor: sidebarDotColor(for: section),
             action: { selectedSection = section }
         )
-        .keyboardShortcut(shortcut(for: section), modifiers: [.command])
+        if let key = shortcut(for: section) {
+            button.keyboardShortcut(key, modifiers: [.command])
+        } else {
+            button
+        }
     }
 
     // MARK: - Detail
@@ -360,7 +365,7 @@ struct ContentView: View {
 
     // MARK: - Helpers
 
-    private func shortcut(for section: AppSection) -> KeyEquivalent {
+    private func shortcut(for section: AppSection) -> KeyEquivalent? {
         switch section {
         case .home: return "1"
         case .memory: return "2"
@@ -368,24 +373,10 @@ struct ContentView: View {
         case .battery: return "4"
         case .cache: return "5"
         case .disk: return "6"
-        case .duplicateFinder: return "0" // shared
         case .docker: return "7"
         case .maintenance: return "8"
-        case .storageTools: return "9"
-        case .loginItems: return "0"
-        case .privacy: return "0" // shared with loginItems
-        case .apps: return "0" // shared with loginItems
-        case .photoJunk: return "0" // shared
-        case .shredder: return "0" // shared
-        case .updater: return "0" // shared
-        case .extensions: return "0" // shared
-        case .network: return "0" // shared
-        case .diskHealth: return "0" // shared
-        case .startupTime: return "0" // shared
-        case .diskBenchmark: return "0" // shared
-        case .brokenDownloads: return "0" // shared
-        case .screenshotOrganizer: return "0" // shared
-        case .activityLog: return "0" // shared
+        case .activityLog: return "9"
+        default: return nil
         }
     }
 
@@ -405,7 +396,7 @@ struct ContentView: View {
             return nil
         case .docker:
             if let usage = dockerViewModel.snapshot?.diskUsage, usage.totalBytes > 10 * 1024 * 1024 * 1024 {
-                return .purple
+                return .orange
             }
             return nil
         case .cpu:
@@ -694,7 +685,7 @@ private struct IntroSheet: View {
                 VStack(spacing: 8) {
                     Text("Welcome to MacOptimizer Studio")
                         .font(.title.weight(.bold))
-                    Text("Your all-in-one Mac optimization toolkit")
+                    Text("Your Mac, But Faster")
                         .font(.title3)
                         .foregroundStyle(.secondary)
                 }

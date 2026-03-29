@@ -11,22 +11,19 @@ struct CPUView: View {
     @State private var processFilter = ""
     @State private var sortByCPU = true
 
-    @AppStorage("memory_poll_interval") private var memoryPollInterval = 10
-
-    private let executor = SafeExecutor()
-    private let auditLog = AuditLogService()
+    @AppStorage(StorageKeys.memoryPollInterval) private var memoryPollInterval = 10
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: DesignTokens.sectionSpacing) {
                 header
                 controls
                 cpuSummaryCards
                 cpuInsightBanner
                 processTable
             }
-            .padding(20)
-            .frame(maxWidth: 1200)
+            .padding(DesignTokens.contentPadding)
+            .frame(maxWidth: DesignTokens.contentMaxWidth)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .background(Color(nsColor: .windowBackgroundColor))
@@ -36,12 +33,13 @@ struct CPUView: View {
         .onDisappear {
             memoryViewModel.stopPolling()
         }
-        .sheet(item: $pendingQuitProcess) { process in
-            quitConfirmSheet(process: process, isForce: false)
-        }
-        .sheet(item: $pendingForceQuitProcess) { process in
-            quitConfirmSheet(process: process, isForce: true)
-        }
+        .processQuitSheets(
+            pendingQuitProcess: $pendingQuitProcess,
+            pendingForceQuitProcess: $pendingForceQuitProcess,
+            lastQuitResult: $lastQuitResult,
+            detailStyle: .cpu,
+            onProcessQuit: { memoryViewModel.refreshNow() }
+        )
     }
 
     // MARK: - Header
@@ -110,7 +108,7 @@ struct CPUView: View {
                 icon: "flame.fill",
                 title: "Highest CPU",
                 value: highestCPUValue,
-                tint: (highestCPUEntry?.cpuPercent ?? 0) > 80 ? .red : .purple
+                tint: (highestCPUEntry?.cpuPercent ?? 0) > 80 ? .red : .orange
             )
 
             StatCard(
@@ -220,7 +218,7 @@ struct CPUView: View {
                             .foregroundStyle(.secondary)
                             .padding(.vertical, 20)
                     } else {
-                        VStack(spacing: 0) {
+                        LazyVStack(spacing: 0, pinnedViews: []) {
                             processHeader
                             Divider()
                             ForEach(filtered) { entry in
@@ -329,47 +327,6 @@ struct CPUView: View {
     }
 
     // MARK: - Quit Sheet
-
-    private func quitConfirmSheet(process: ProcessMemoryEntry, isForce: Bool) -> some View {
-        let signalName = isForce ? "SIGKILL (Force Quit)" : "SIGTERM (Quit)"
-        let signal: Int32 = isForce ? 9 : 15
-
-        return DoubleConfirmSheet(
-            title: isForce ? "Force Quit Process" : "Quit Process",
-            warning: isForce
-                ? "FORCE QUIT will terminate immediately. Unsaved data WILL be lost."
-                : "The process will be asked to exit gracefully. Unsaved data may be lost.",
-            confirmLabel: isForce ? "Force Quit Now" : "Quit Now",
-            items: [(process.name, "PID: \(process.pid) — CPU: \(String(format: "%.1f%%", process.cpuPercent ?? 0)) — Signal: \(signalName)")],
-            onCancel: {
-                pendingQuitProcess = nil
-                pendingForceQuitProcess = nil
-            },
-            onConfirm: {
-                let success = executor.sendSignal(signal, toPid: process.pid)
-                lastQuitResult = success
-                    ? "\(signalName) sent to \(process.name) (PID \(process.pid))"
-                    : "Failed to send signal. Permission denied."
-
-                if success {
-                    let log = auditLog
-                    let entry = AuditLogEntry(
-                        action: isForce ? .processForceKilled : .processKilled,
-                        details: "\(signalName) sent to \(process.name) (PID \(process.pid), CPU: \(String(format: "%.1f%%", process.cpuPercent ?? 0)))",
-                        paths: [],
-                        totalBytes: nil,
-                        itemCount: 1,
-                        userConfirmed: true
-                    )
-                    Task.detached { log.log(entry) }
-                }
-
-                pendingQuitProcess = nil
-                pendingForceQuitProcess = nil
-                memoryViewModel.refreshNow()
-            }
-        )
-    }
 
     // MARK: - Helpers
 
