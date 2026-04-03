@@ -1,0 +1,9 @@
+.build/
+.swiftpm/
+.swift-cache/
+.home/
+DerivedData/
+.DS_Store
+build/
+rust/macopt-scanner/target/
+scripts/

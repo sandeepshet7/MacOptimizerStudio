@@ -1,0 +1,349 @@
+import AppKit
+import SwiftUI
+
+// MARK: - Design Tokens
+
+enum DesignTokens {
+    static let cardPadding: CGFloat = 16
+    static let cardCornerRadius: CGFloat = 10
+    static let contentPadding: CGFloat = 24
+    static let contentMaxWidth: CGFloat = 1200
+    static let gridSpacing: CGFloat = 12
+    static let sectionSpacing: CGFloat = 20
+    static let statCardMinWidth: CGFloat = 200
+
+    // Theme colors
+    static let pageBackground = Color(red: 0.098, green: 0.098, blue: 0.118)
+    static let cardBackground = Color(red: 0.122, green: 0.122, blue: 0.141)
+    static let cardBorder = Color.white.opacity(0.06)
+    static let primaryText = Color(red: 0.984, green: 0.973, blue: 0.996)
+    static let secondaryText = Color(red: 0.675, green: 0.667, blue: 0.686)
+    static let accent = Color(red: 1.0, green: 0.522, blue: 0.0)
+}
+
+// MARK: - Mini Sparkline Chart
+
+struct Sparkline: View {
+    let data: [Double]
+    var tint: Color = .blue
+    var height: CGFloat = 24
+
+    var body: some View {
+        GeometryReader { geo in
+            let maxVal = data.max() ?? 1
+            let minVal = data.min() ?? 0
+            let range = max(maxVal - minVal, 0.001)
+
+            Path { path in
+                guard data.count > 1 else { return }
+                let stepX = geo.size.width / CGFloat(data.count - 1)
+
+                for (index, value) in data.enumerated() {
+                    let x = CGFloat(index) * stepX
+                    let y = geo.size.height * (1 - CGFloat((value - minVal) / range))
+                    if index == 0 {
+                        path.move(to: CGPoint(x: x, y: y))
+                    } else {
+                        path.addLine(to: CGPoint(x: x, y: y))
+                    }
+                }
+            }
+            .stroke(
+                LinearGradient(colors: [tint.opacity(0.5), tint], startPoint: .leading, endPoint: .trailing),
+                style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+            )
+
+            // Fill area under the line
+            Path { path in
+                guard data.count > 1 else { return }
+                let stepX = geo.size.width / CGFloat(data.count - 1)
+
+                path.move(to: CGPoint(x: 0, y: geo.size.height))
+                for (index, value) in data.enumerated() {
+                    let x = CGFloat(index) * stepX
+                    let y = geo.size.height * (1 - CGFloat((value - minVal) / range))
+                    path.addLine(to: CGPoint(x: x, y: y))
+                }
+                path.addLine(to: CGPoint(x: geo.size.width, y: geo.size.height))
+                path.closeSubpath()
+            }
+            .fill(
+                LinearGradient(colors: [tint.opacity(0.15), tint.opacity(0.02)], startPoint: .top, endPoint: .bottom)
+            )
+        }
+        .frame(height: height)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Sparkline chart")
+        .accessibilityValue(data.isEmpty ? "No data" : "Range \(String(format: "%.0f", data.min() ?? 0)) to \(String(format: "%.0f", data.max() ?? 0))")
+    }
+}
+
+// MARK: - Proportional Progress Bar
+
+struct ProportionalBar: View {
+    let value: Double // 0..1
+    var tint: Color = .orange
+    var height: CGFloat = 4
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.primary.opacity(0.10))
+                Capsule()
+                    .fill(tint)
+                    .frame(width: max(2, geo.size.width * min(max(value, 0), 1)))
+                    .animation(.easeInOut(duration: 0.6), value: value)
+            }
+        }
+        .frame(height: height)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Progress bar")
+        .accessibilityValue("\(Int(value * 100)) percent")
+    }
+}
+
+// MARK: - Severity Badge
+
+enum SeverityLevel {
+    case healthy, moderate, critical
+
+    var label: String {
+        switch self {
+        case .healthy: return "Healthy"
+        case .moderate: return "Moderate"
+        case .critical: return "Critical"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .healthy: return .green
+        case .moderate: return .orange
+        case .critical: return .red
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .healthy: return "checkmark.circle.fill"
+        case .moderate: return "exclamationmark.circle.fill"
+        case .critical: return "xmark.circle.fill"
+        }
+    }
+}
+
+struct SeverityBadge: View {
+    let level: SeverityLevel
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: level.icon)
+                .font(.caption2)
+            Text(level.label)
+                .font(.system(.caption2, design: .rounded).weight(.semibold))
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(level.color.opacity(0.15))
+        .foregroundStyle(level.color)
+        .clipShape(Capsule())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Status: \(level.label)")
+    }
+}
+
+// MARK: - Staggered Animation Modifier
+
+struct StaggeredAppear: ViewModifier {
+    let index: Int
+    @State private var appeared = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 12)
+            .onAppear {
+                let delay = Double(index) * 0.06
+                withAnimation(.easeOut(duration: 0.35).delay(delay)) {
+                    appeared = true
+                }
+            }
+    }
+}
+
+extension View {
+    func staggeredAppear(index: Int) -> some View {
+        modifier(StaggeredAppear(index: index))
+    }
+}
+
+// MARK: - Styled Card (shared across all views)
+
+struct StyledCard<Content: View>: View {
+    let content: Content
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+    var body: some View {
+        content
+            .padding(DesignTokens.cardPadding)
+            .background(DesignTokens.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: DesignTokens.cardCornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignTokens.cardCornerRadius)
+                    .stroke(DesignTokens.cardBorder, lineWidth: 1)
+            )
+    }
+}
+
+struct CardSectionHeader: View {
+    let icon: String
+    let title: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundColor(color)
+                .frame(width: 20)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.primary)
+        }
+    }
+}
+
+struct InfoRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.body)
+                .foregroundColor(.primary)
+            Spacer()
+            Text(value)
+                .font(.body)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+struct StatCard: View {
+    let icon: String
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        StyledCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.caption)
+                        .foregroundColor(tint)
+                    Text(title)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Text(value)
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.primary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(title): \(value)")
+        }
+    }
+}
+
+// MARK: - Section Transition
+
+struct SectionTransition: ViewModifier {
+    @State private var appeared = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 8)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    appeared = true
+                }
+            }
+    }
+}
+
+extension View {
+    func sectionTransition() -> some View {
+        modifier(SectionTransition())
+    }
+}
+
+// MARK: - Animated Number Counter
+
+struct AnimatedCounter: View {
+    let value: Double
+    let format: (Double) -> String
+
+    @State private var displayValue: Double = 0
+
+    var body: some View {
+        Text(format(displayValue))
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.8)) {
+                    displayValue = value
+                }
+            }
+            .onChange(of: value) { newValue in
+                withAnimation(.easeOut(duration: 0.5)) {
+                    displayValue = newValue
+                }
+            }
+    }
+}
+
+// MARK: - Pulse Animation Modifier
+
+struct PulseModifier: ViewModifier {
+    let isActive: Bool
+    @State private var scale: CGFloat = 1.0
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(scale)
+            .onChange(of: isActive) { active in
+                if active {
+                    withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                        scale = 1.05
+                    }
+                } else {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        scale = 1.0
+                    }
+                }
+            }
+    }
+}
+
+extension View {
+    func pulseWhenActive(_ isActive: Bool) -> some View {
+        modifier(PulseModifier(isActive: isActive))
+    }
+}
+
+// MARK: - Finder Helper
+
+enum FinderHelper {
+    static func reveal(path: String) {
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+    }
+
+    static func reveal(file filePath: String, in directory: String) {
+        NSWorkspace.shared.selectFile(filePath, inFileViewerRootedAtPath: directory)
+    }
+}
+
