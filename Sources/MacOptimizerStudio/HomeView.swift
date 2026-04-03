@@ -29,6 +29,8 @@ struct HomeView: View {
     @State private var quickCleanDone = false
     @State private var quickCleanFreedBytes: UInt64 = 0
     @State private var quickCleanExecutionRequest: ExecutionRequest?
+    @State private var hoverQuickClean = false
+    @State private var hoverSmartScan = false
 
     var body: some View {
         ScrollView {
@@ -75,14 +77,19 @@ struct HomeView: View {
         }
         .sheet(item: $quickCleanExecutionRequest) { request in
             MultiConfirmSheet(request: request) { success in
+                let itemCount = request.items.count
+                let freedBytes = request.items.reduce(UInt64(0)) { $0 + $1.sizeBytes }
                 quickCleanExecutionRequest = nil
                 if success {
-                    cacheViewModel.logCleanup(itemCount: request.items.count)
-                    quickCleanFreedBytes = request.items.reduce(UInt64(0)) { $0 + $1.sizeBytes }
-                    Task { await cacheViewModel.scan() }
+                    cacheViewModel.logCleanup(itemCount: itemCount)
+                    quickCleanFreedBytes = freedBytes
                     withAnimation {
                         quickCleanReady = false
                         quickCleanDone = true
+                    }
+                    Task {
+                        try? await Task.sleep(nanoseconds: 500_000_000)
+                        await cacheViewModel.scan()
                     }
                 }
             }
@@ -112,6 +119,16 @@ struct HomeView: View {
                 .tint(.orange)
                 .controlSize(.large)
                 .disabled(isQuickScanning || isSmartScanning)
+                .onHover { hoverQuickClean = $0 }
+                .popover(isPresented: $hoverQuickClean, arrowEdge: .bottom) {
+                    buttonTooltip(
+                        icon: "sparkles",
+                        title: "Quick Clean",
+                        action: "Cleans",
+                        detail: "Scans all cache categories, selects only Safe items, and moves them to Trash in one step.",
+                        tip: "Files go to Trash — you can restore them if needed."
+                    )
+                }
 
                 Button {
                     Task { await runSmartScan() }
@@ -123,6 +140,16 @@ struct HomeView: View {
                 .tint(.orange)
                 .controlSize(.large)
                 .disabled(isSmartScanning || isQuickScanning)
+                .onHover { hoverSmartScan = $0 }
+                .popover(isPresented: $hoverSmartScan, arrowEdge: .bottom) {
+                    buttonTooltip(
+                        icon: "gauge.with.dots.needle.67percent",
+                        title: "Smart Scan",
+                        action: "Read-only",
+                        detail: "Analyzes caches, memory pressure, and disk usage. Shows a health summary with cleanable bytes and issues found.",
+                        tip: "Nothing is deleted — diagnosis only."
+                    )
+                }
             }
         }
     }
@@ -281,6 +308,33 @@ struct HomeView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    // MARK: - Button Tooltip
+
+    private func buttonTooltip(icon: String, title: String, action: String, detail: String, tip: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundStyle(.orange)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text(action)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(action == "Cleans" ? .orange : .green)
+            }
+            Divider()
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Divider()
+            Text(tip)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .frame(width: 280)
     }
 
     // MARK: - Quick Clean

@@ -53,7 +53,6 @@
   - Communication Apps, Game Libraries, AI & ML Models, Installer Packages, Temporary Files
 - **Disk Analysis** -- Rust-powered scan with sortable largest folders, drag-and-drop scan roots
 - **Duplicate File Finder** -- SHA256-based detection with partial hash optimization
-- **Maintenance** -- System scripts (flush DNS, rebuild Spotlight, verify disk, repair permissions)
 - **Broken Downloads** -- Scan for incomplete files in Downloads folder
 
 ### Smart Safety

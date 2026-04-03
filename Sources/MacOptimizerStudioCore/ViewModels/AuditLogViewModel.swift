@@ -7,6 +7,13 @@ public final class AuditLogViewModel: ObservableObject {
 
     private let service: AuditLogService
 
+    /// Actions from removed Pro features — filter these from display
+    private static let removedActions: Set<AuditAction> = [
+        .dockerImageRemoved, .dockerVolumeRemoved, .dockerContainerRemoved, .dockerPrune,
+        .maintenanceTaskRun, .fileShredded, .screenshotsMoved, .extensionRemoved,
+        .photoJunkTrashed, .appUninstalled, .appDataReset,
+    ]
+
     public init(service: AuditLogService = AuditLogService()) {
         self.service = service
     }
@@ -20,7 +27,7 @@ public final class AuditLogViewModel: ObservableObject {
             svc.loadAll()
         }.value
 
-        entries = result
+        entries = result.filter { !Self.removedActions.contains($0.action) }
     }
 
     public func exportText() -> String {

@@ -6,4 +6,6 @@ DerivedData/
 .DS_Store
 build/
 rust/macopt-scanner/target/
-scripts/
+.claude/
+github-upload/
+MacOptimizerStudio_github_upload_*.zip

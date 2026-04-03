@@ -40,14 +40,19 @@ struct CacheCleanupView: View {
         }
         .sheet(item: $executionRequest) { request in
             MultiConfirmSheet(request: request) { success in
+                let itemCount = request.items.count
                 executionRequest = nil
                 if success {
-                    cacheViewModel.logCleanup(itemCount: request.items.count)
+                    cacheViewModel.logCleanup(itemCount: itemCount)
                     toastManager.show("Cache cleanup completed successfully")
                 } else {
                     toastManager.show("Cleanup completed with errors", isError: true)
                 }
-                Task { await cacheViewModel.scan() }
+                // Re-scan after sheet dismissal to refresh the list
+                Task {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    await cacheViewModel.scan()
+                }
             }
         }
     }
